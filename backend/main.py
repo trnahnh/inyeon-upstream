@@ -5,23 +5,27 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.core.config import settings
 from backend.core.dependencies import get_ollama_client
+from backend.core.logging import logger
 from backend.routers import analyze, commit
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Application lifespan handler."""
     # Startup
+    logger.info("Starting Inyeon API...")
     client = get_ollama_client()
+
     if await client.is_healthy():
-        print(f"Connected to Ollama at {settings.ollama_url}")
-        print(f"Using model: {settings.ollama_model}")
+        logger.info(f"Connected to Ollama at {settings.ollama_url}")
+        logger.info(f"Using model: {settings.ollama_model}")
     else:
-        print(f"Warning: Ollama not reachable at {settings.ollama_url}")
+        logger.warning(f"Ollama not reachable at {settings.ollama_url}")
 
     yield
 
     # Shutdown
-    print("Shutting down Inyeon API...")
+    logger.info("Shutting down Inyeon API...")
 
 
 app = FastAPI(
@@ -31,10 +35,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS middleware for local development
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Restrict in production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,6 +51,7 @@ app.include_router(commit.router, prefix="/api/v1", tags=["commit"])
 
 @app.get("/health", tags=["health"])
 async def health_check():
+    """Health check endpoint."""
     client = get_ollama_client()
     ollama_healthy = await client.is_healthy()
 
@@ -63,6 +68,7 @@ async def health_check():
 
 @app.get("/", tags=["root"])
 async def root():
+    """Root endpoint with API information."""
     return {
         "name": settings.api_title,
         "version": settings.api_version,
