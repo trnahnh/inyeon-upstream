@@ -178,6 +178,7 @@ API Endpoints
 | POST   | /api/v1/generate-commit | Generate commit message |
 
 Interactive docs available at http://localhost:8000/docs
+```
 
----
+
 Built with https://ollama.com/, https://fastapi.tiangolo.com/, and https://typer.tiangolo.com/.
