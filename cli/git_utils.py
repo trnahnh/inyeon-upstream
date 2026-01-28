@@ -12,19 +12,21 @@ def run_git(args: list[str], check: bool = False) -> tuple[str, str, int]:
     Run a git command.
 
     Args:
-        args: Git command arguments (e.g., ["diff", "--cached"]).
-        check: If True, raise GitError on non-zero exit.
+                    args: Git command arguments (e.g., ["diff", "--cached"]).
+                    check: If True, raise GitError on non-zero exit.
 
     Returns:
-        Tuple of (stdout, stderr, return_code).
+                    Tuple of (stdout, stderr, return_code).
 
     Raises:
-        GitError: If check=True and command fails.
+                    GitError: If check=True and command fails.
     """
     result = subprocess.run(
         ["git"] + args,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
 
     if check and result.returncode != 0:
