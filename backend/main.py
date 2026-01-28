@@ -13,8 +13,8 @@ async def lifespan(app: FastAPI):
     # Startup
     client = get_ollama_client()
     if await client.is_healthy():
-        print(f"✓ Connected to Ollama at {settings.ollama_url}")
-        print(f"✓ Using model: {settings.ollama_model}")
+        print(f"Connected to Ollama at {settings.ollama_url}")
+        print(f"Using model: {settings.ollama_model}")
     else:
         print(f"Warning: Ollama not reachable at {settings.ollama_url}")
 
