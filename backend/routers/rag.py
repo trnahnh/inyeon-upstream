@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
 from backend.rag import CodeRetriever, RAGError
@@ -6,20 +6,19 @@ from backend.rag import CodeRetriever, RAGError
 
 router = APIRouter(tags=["rag"])
 
-retriever: CodeRetriever | None = None
+retrievers: dict[str, CodeRetriever] = {}
 
 
-def get_retriever() -> CodeRetriever:
-    """Get or create the global retriever instance."""
-    global retriever
-    if retriever is None:
-        retriever = CodeRetriever()
-    return retriever
+def get_retriever(repo_id: str) -> CodeRetriever:
+    """Get or create retriever for a specific repo."""
+    if repo_id not in retrievers:
+        retrievers[repo_id] = CodeRetriever()
+    return retrievers[repo_id]
 
 
 class IndexRequest(BaseModel):
+    repo_id: str
     files: dict[str, str]
-    """Files to index. Format: {path: content}"""
 
 
 class IndexResponse(BaseModel):
@@ -28,6 +27,7 @@ class IndexResponse(BaseModel):
 
 
 class SearchRequest(BaseModel):
+    repo_id: str
     query: str
     n_results: int = 5
 
@@ -42,13 +42,15 @@ class SearchResponse(BaseModel):
     results: list[SearchResult]
 
 
+class RepoRequest(BaseModel):
+    repo_id: str
+
+
 @router.post("/index", response_model=IndexResponse)
-async def index_files(
-    request: IndexRequest,
-    ret: CodeRetriever = Depends(get_retriever),
-) -> IndexResponse:
-    """Index files for RAG search."""
+async def index_files(request: IndexRequest) -> IndexResponse:
+    """Index files for a specific repo."""
     try:
+        ret = get_retriever(request.repo_id)
         ids = await ret.index_files(request.files)
         return IndexResponse(indexed=len(ids), total=ret.count())
     except RAGError as e:
@@ -59,12 +61,10 @@ async def index_files(
 
 
 @router.post("/search", response_model=SearchResponse)
-async def search_code(
-    request: SearchRequest,
-    ret: CodeRetriever = Depends(get_retriever),
-) -> SearchResponse:
-    """Search indexed code."""
+async def search_code(request: SearchRequest) -> SearchResponse:
+    """Search indexed code for a specific repo."""
     try:
+        ret = get_retriever(request.repo_id)
         results = await ret.search(request.query, request.n_results)
         return SearchResponse(results=[SearchResult(**r) for r in results])
     except RAGError as e:
@@ -74,14 +74,16 @@ async def search_code(
         )
 
 
-@router.get("/stats")
-async def rag_stats(ret: CodeRetriever = Depends(get_retriever)) -> dict:
-    """Get RAG index statistics."""
-    return {"indexed_files": ret.count()}
+@router.post("/stats")
+async def rag_stats(request: RepoRequest) -> dict:
+    """Get RAG index statistics for a repo."""
+    ret = get_retriever(request.repo_id)
+    return {"repo_id": request.repo_id, "indexed_files": ret.count()}
 
 
-@router.delete("/clear")
-async def clear_index(ret: CodeRetriever = Depends(get_retriever)) -> dict:
-    """Clear the RAG index."""
+@router.post("/clear")
+async def clear_index(request: RepoRequest) -> dict:
+    """Clear the RAG index for a repo."""
+    ret = get_retriever(request.repo_id)
     ret.clear()
-    return {"status": "cleared"}
+    return {"status": "cleared", "repo_id": request.repo_id}

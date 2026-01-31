@@ -10,13 +10,7 @@ class APIError(Exception):
 
 
 class APIClient:
-    """
-    Client for communicating with Inyeon Backend.
-
-    Usage:
-        client = APIClient()
-        result = client.analyze(diff_content)
-    """
+    """Client for communicating with Inyeon Backend."""
 
     def __init__(self, base_url: str | None = None, timeout: int | None = None):
         self.base_url = base_url or settings.api_url
@@ -46,44 +40,40 @@ class APIClient:
         return self._request("GET", "/health")
 
     def analyze(self, diff: str, context: str | None = None) -> dict:
-        """
-        Analyze a git diff.
-
-        Args:
-            diff: Git diff content.
-            context: Optional additional context.
-
-        Returns:
-            Analysis result with summary, impact, etc.
-        """
+        """Analyze a git diff."""
         payload = {"diff": diff}
         if context:
             payload["context"] = context
-
         return self._request("POST", "/api/v1/analyze", json=payload)
 
     def generate_commit(self, diff: str, issue_ref: str | None = None) -> dict:
-        """
-        Generate a commit message from a diff.
-
-        Args:
-            diff: Git diff content.
-            issue_ref: Optional issue reference (e.g., "#234").
-
-        Returns:
-            Commit message with type, scope, subject, body, etc.
-        """
+        """Generate a commit message from a diff."""
         payload = {"diff": diff}
         if issue_ref:
             payload["issue_ref"] = issue_ref
-
         return self._request("POST", "/api/v1/generate-commit", json=payload)
 
     def run_agent(self, diff: str, repo_path: str = ".", verbose: bool = False) -> dict:
         """Run the git workflow agent."""
-        payload = {
-            "diff": diff,
-            "repo_path": repo_path,
-            "verbose": verbose,
-        }
+        payload = {"diff": diff, "repo_path": repo_path, "verbose": verbose}
         return self._request("POST", "/api/v1/agent/run", json=payload)
+
+    def rag_index(self, repo_id: str, files: dict[str, str]) -> dict:
+        """Index files for RAG search."""
+        payload = {"repo_id": repo_id, "files": files}
+        return self._request("POST", "/api/v1/rag/index", json=payload)
+
+    def rag_search(self, repo_id: str, query: str, n_results: int = 5) -> dict:
+        """Search indexed code."""
+        payload = {"repo_id": repo_id, "query": query, "n_results": n_results}
+        return self._request("POST", "/api/v1/rag/search", json=payload)
+
+    def rag_stats(self, repo_id: str) -> dict:
+        """Get RAG index statistics."""
+        payload = {"repo_id": repo_id}
+        return self._request("POST", "/api/v1/rag/stats", json=payload)
+
+    def rag_clear(self, repo_id: str) -> dict:
+        """Clear RAG index for a repo."""
+        payload = {"repo_id": repo_id}
+        return self._request("POST", "/api/v1/rag/clear", json=payload)

@@ -8,19 +8,7 @@ class GitError(Exception):
 
 
 def run_git(args: list[str], check: bool = False) -> tuple[str, str, int]:
-    """
-    Run a git command.
-
-    Args:
-        args: Git command arguments (e.g., ["diff", "--cached"]).
-        check: If True, raise GitError on non-zero exit.
-
-    Returns:
-        Tuple of (stdout, stderr, return_code).
-
-    Raises:
-        GitError: If check=True and command fails.
-    """
+    """Run a git command."""
     result = subprocess.run(
         ["git"] + args,
         capture_output=True,
@@ -41,6 +29,22 @@ def is_git_repo() -> bool:
     return code == 0
 
 
+def get_repo_id() -> str:
+    """Get unique repo identifier from remote URL or directory name."""
+    stdout, _, code = run_git(["remote", "get-url", "origin"])
+    if code == 0 and stdout.strip():
+        url = stdout.strip()
+        url = url.replace("git@github.com:", "github.com/")
+        url = url.replace("https://", "").replace(".git", "")
+        return url
+
+    stdout, _, _ = run_git(["rev-parse", "--show-toplevel"])
+    if stdout.strip():
+        return stdout.strip().split("/")[-1].split("\\")[-1]
+
+    return "unknown-repo"
+
+
 def get_staged_diff() -> str:
     """Get diff of staged changes."""
     stdout, _, _ = run_git(["diff", "--cached"])
@@ -48,24 +52,19 @@ def get_staged_diff() -> str:
 
 
 def get_unstaged_diff() -> str:
-    """Get diff of unstaged changes (working tree vs index)."""
+    """Get diff of unstaged changes."""
     stdout, _, _ = run_git(["diff"])
     return stdout
 
 
 def get_all_diff() -> str:
-    """Get diff of all uncommitted changes (staged + unstaged)."""
+    """Get diff of all uncommitted changes."""
     stdout, _, _ = run_git(["diff", "HEAD"])
     return stdout
 
 
 def create_commit(message: str) -> bool:
-    """
-    Create a commit with the given message.
-
-    Returns:
-        True if commit succeeded, False otherwise.
-    """
+    """Create a commit with the given message."""
     _, _, code = run_git(["commit", "-m", message])
     return code == 0
 
@@ -74,3 +73,9 @@ def get_current_branch() -> str:
     """Get the name of the current branch."""
     stdout, _, _ = run_git(["rev-parse", "--abbrev-ref", "HEAD"])
     return stdout.strip()
+
+
+def get_tracked_files() -> list[str]:
+    """Get list of all tracked files in the repo."""
+    stdout, _, _ = run_git(["ls-files"])
+    return [f for f in stdout.strip().split("\n") if f]

@@ -1,6 +1,6 @@
 import typer
 
-from cli.commands import analyze, commit, agent
+from cli.commands import analyze, commit, agent, index
 
 
 app = typer.Typer(
@@ -10,15 +10,15 @@ app = typer.Typer(
     add_completion=False,
 )
 
-# Register sub-commands
 app.add_typer(analyze.app, name="analyze")
 app.add_typer(commit.app, name="commit")
 app.add_typer(agent.app, name="agent")
+app.add_typer(index.app, name="index")
 
 
 @app.command()
 def version():
-    """Show version information"""
+    """Show version information."""
     typer.echo("inyeon v0.1.0")
 
 
@@ -31,7 +31,7 @@ def health(
         envvar="INYEON_API_URL",
     ),
 ):
-    """Check backend connection status"""
+    """Check backend connection status."""
     from rich.console import Console
     from cli.api_client import APIClient, APIError
 
@@ -43,18 +43,18 @@ def health(
 
         status = result.get("status", "unknown")
         if status == "healthy":
-            console.print(f"[green] Backend:[/green] {client.base_url}")
+            console.print(f"[green]✓ Backend:[/green] {client.base_url}")
         else:
-            console.print(f"[yellow] Backend:[/yellow] {status}")
+            console.print(f"[yellow]! Backend:[/yellow] {status}")
 
-        ollama = result.get("ollama", {})
-        if ollama.get("connected"):
-            console.print(f"[green] Ollama:[/green] {ollama.get('model')}")
+        llm = result.get("llm", {})
+        if llm.get("connected"):
+            console.print(f"[green]✓ LLM:[/green] {llm.get('provider')}")
         else:
-            console.print("[red] Ollama:[/red] Not connected")
+            console.print("[red]✗ LLM:[/red] Not connected")
 
     except APIError as e:
-        console.print(f"[red] Backend:[/red] {e}")
+        console.print(f"[red]✗ Backend:[/red] {e}")
         raise typer.Exit(1)
 
 
