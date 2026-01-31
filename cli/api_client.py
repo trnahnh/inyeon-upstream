@@ -58,6 +58,11 @@ class APIClient:
         payload = {"diff": diff, "repo_path": repo_path, "verbose": verbose}
         return self._request("POST", "/api/v1/agent/run", json=payload)
 
+    def review(self, diff: str) -> dict:
+        """Get code review feedback."""
+        payload = {"diff": diff}
+        return self._request("POST", "/api/v1/agent/review", json=payload)
+
     def rag_index(self, repo_id: str, files: dict[str, str]) -> dict:
         """Index files for RAG search."""
         payload = {"repo_id": repo_id, "files": files}

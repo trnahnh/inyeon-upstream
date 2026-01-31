@@ -30,5 +30,8 @@ class AgentState(TypedDict):
     commit_message: str | None
     """Final generated commit message."""
 
+    review: dict[str, Any] | None
+    """Code review feedback."""
+
     reasoning: list[str]
     """Agent's reasoning steps."""
