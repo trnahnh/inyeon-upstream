@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.core.config import settings
 from backend.core.dependencies import get_llm_provider
 from backend.core.logging import logger
-from backend.routers import analyze, commit, agent, rag
+from backend.routers import analyze, commit, agent, rag, split
 
 
 @asynccontextmanager
@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.api_title,
     version=settings.api_version,
-    description="Git workflow AI assistant - diff analysis and commit generation",
+    description="Agentic AI Git Assistant",
     lifespan=lifespan,
 )
 
@@ -44,6 +44,7 @@ app.include_router(analyze.router, prefix="/api/v1", tags=["analyze"])
 app.include_router(commit.router, prefix="/api/v1", tags=["commit"])
 app.include_router(agent.router, prefix="/api/v1")
 app.include_router(rag.router, prefix="/api/v1/rag")
+app.include_router(split.router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["health"])
