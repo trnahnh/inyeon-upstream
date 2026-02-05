@@ -25,7 +25,7 @@ class Settings(BaseSettings):
 
     # API Configuration
     api_title: str = "Inyeon API"
-    api_version: str = "0.1.0"
+    api_version: str = "2.0.0"
     debug: bool = False
 
 
