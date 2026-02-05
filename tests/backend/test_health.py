@@ -17,4 +17,4 @@ def test_health_endpoint(client):
     data = response.json()
     assert "status" in data
     assert "version" in data
-    assert "ollama" in data
+    assert "llm" in data
