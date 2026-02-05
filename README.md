@@ -6,27 +6,49 @@
 
 ---
 
-## ⚡ Quick Start
+## 📦 Installation
 
 ```bash
-# Install
 pip install git+https://github.com/suka712/inyeon-upstream.git
+```
 
-# Generate commit messages
-inyeon commit --staged
+---
 
-# Split large changes into atomic commits (v2.0.0)
-inyeon split --staged --preview
-inyeon split --staged --interactive
+## 📖 Usage
 
-# Code review
-inyeon review --staged
+### Generate Commit Messages
+```bash
+inyeon commit --staged              # From staged changes
+inyeon commit --staged --dry-run    # Preview without committing
+inyeon commit --staged --issue "#123"  # Reference an issue
+```
 
-# Analyze any diff
-git diff | inyeon analyze
+### Split into Atomic Commits (v2.0.0)
+```bash
+inyeon split --staged --preview     # Preview how changes will be split
+inyeon split --staged --interactive # Approve each commit individually
+inyeon split --staged --execute     # Auto-commit all groups
+inyeon split --staged --strategy semantic  # Use specific strategy
+```
 
-# Index codebase for smart context
-inyeon index
+**Strategies:** `directory` | `semantic` | `conventional` | `hybrid` (default)
+
+### Code Review
+```bash
+inyeon review --staged              # Review staged changes
+inyeon review --all                 # Review all uncommitted changes
+```
+
+### Analyze Diffs
+```bash
+git diff | inyeon analyze           # Pipe any diff
+inyeon analyze -f changes.patch     # From file
+inyeon analyze -c "refactoring auth"  # With context
+```
+
+### Index Codebase (RAG)
+```bash
+inyeon index                        # Index for smart context retrieval
 ```
 
 ---
