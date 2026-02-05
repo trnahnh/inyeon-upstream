@@ -31,7 +31,11 @@ inyeon split --staged --execute            # Auto-commit all groups
 inyeon split --staged --strategy semantic  # Use specific strategy
 ```
 
-**Strategies:** `directory` | `semantic` | `conventional` | `hybrid` (default)
+**Strategies:**
+- `directory` - Group by folder structure
+- `semantic` - Group by code similarity (embeddings)
+- `conventional` - Group by commit type (feat, fix, docs)
+- `hybrid` - Combine all strategies (default)
 
 ### Code Review
 ```bash
