@@ -82,3 +82,16 @@ class APIClient:
         """Clear RAG index for a repo."""
         payload = {"repo_id": repo_id}
         return self._request("POST", "/api/v1/rag/clear", json=payload)
+
+    def split_diff(
+        self,
+        diff: str,
+        strategy: str = "hybrid",
+        repo_path: str = ".",
+    ) -> dict:
+        payload = {
+            "diff": diff,
+            "strategy": strategy,
+            "repo_path": repo_path,
+        }
+        return self._request("POST", "/api/v1/agent/split", json=payload)

@@ -79,3 +79,25 @@ def get_tracked_files() -> list[str]:
     """Get list of all tracked files in the repo."""
     stdout, _, _ = run_git(["ls-files"])
     return [f for f in stdout.strip().split("\n") if f]
+
+
+def stage_files(files: list[str]) -> bool:
+    if not files:
+        return True
+    result = subprocess.run(
+        ["git", "add"] + files,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise GitError(f"Failed to stage files: {result.stderr}")
+    return True
+
+
+def unstage_all() -> bool:
+    result = subprocess.run(
+        ["git", "reset", "HEAD"],
+        capture_output=True,
+        text=True,
+    )
+    return result.returncode == 0

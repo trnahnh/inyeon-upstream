@@ -5,6 +5,7 @@ from backend.rag import CodeRetriever
 
 from .commit_agent import CommitAgent
 from .review_agent import ReviewAgent
+from .split_agent import SplitAgent
 
 
 class AgentOrchestrator:
@@ -16,6 +17,7 @@ class AgentOrchestrator:
         self.agents = {
             "commit": CommitAgent(llm, retriever),
             "review": ReviewAgent(llm, retriever),
+            "split": SplitAgent(llm, retriever),
         }
 
     async def route(self, task: str, diff: str, repo_path: str = ".") -> dict[str, Any]:
