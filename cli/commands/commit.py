@@ -87,6 +87,11 @@ def commit(
         help="Backend API URL (overrides config)",
         envvar="INYEON_API_URL",
     ),
+    hook_mode: bool = typer.Option(
+        False,
+        "--hook-mode",
+        hidden=True,
+    ),
 ):
     """
     Generate a conventional commit message from changes.
@@ -120,14 +125,20 @@ def commit(
         raise typer.Exit(1)
 
     # Call backend
-    console.print("[dim]Generating commit message...[/dim]", end="\r")
+    if not hook_mode:
+        console.print("[dim]Generating commit message...[/dim]", end="\r")
     client = APIClient(base_url=api_url)
 
     try:
         result = client.generate_commit(diff, issue)
     except APIError as e:
-        console.print(f"[red]Error:[/red] {e}")
+        if not hook_mode:
+            console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
+
+    if hook_mode:
+        print(result.get("message", ""))
+        raise typer.Exit(0)
 
     # Output
     if json_output:

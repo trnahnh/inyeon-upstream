@@ -3,7 +3,10 @@ from typing import Any
 from backend.services.llm.base import LLMProvider
 from backend.rag import CodeRetriever
 
+from .changelog_agent import ChangelogAgent
 from .commit_agent import CommitAgent
+from .conflict_agent import ConflictAgent
+from .pr_agent import PRAgent
 from .review_agent import ReviewAgent
 from .split_agent import SplitAgent
 
@@ -15,7 +18,10 @@ class AgentOrchestrator:
         self.llm = llm
         self.retriever = retriever
         self.agents = {
+            "changelog": ChangelogAgent(llm, retriever),
             "commit": CommitAgent(llm, retriever),
+            "pr": PRAgent(llm, retriever),
+            "resolve": ConflictAgent(llm, retriever),
             "review": ReviewAgent(llm, retriever),
             "split": SplitAgent(llm, retriever),
         }

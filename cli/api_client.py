@@ -83,6 +83,22 @@ class APIClient:
         payload = {"repo_id": repo_id}
         return self._request("POST", "/api/v1/rag/clear", json=payload)
 
+    def generate_pr(
+        self,
+        diff: str,
+        commits: list[dict[str, str]] | None = None,
+        branch_name: str = "",
+        base_branch: str = "main",
+    ) -> dict:
+        """Generate a PR description."""
+        payload = {
+            "diff": diff,
+            "commits": commits or [],
+            "branch_name": branch_name,
+            "base_branch": base_branch,
+        }
+        return self._request("POST", "/api/v1/agent/pr", json=payload)
+
     def split_diff(
         self,
         diff: str,
@@ -95,3 +111,22 @@ class APIClient:
             "repo_path": repo_path,
         }
         return self._request("POST", "/api/v1/agent/split", json=payload)
+
+    def resolve_conflicts(self, conflicts: list[dict[str, str]]) -> dict:
+        """Resolve merge conflicts."""
+        payload = {"conflicts": conflicts}
+        return self._request("POST", "/api/v1/agent/resolve", json=payload)
+
+    def generate_changelog(
+        self,
+        commits: list[dict[str, str]],
+        from_ref: str = "",
+        to_ref: str = "HEAD",
+    ) -> dict:
+        """Generate a changelog from commits."""
+        payload = {
+            "commits": commits,
+            "from_ref": from_ref,
+            "to_ref": to_ref,
+        }
+        return self._request("POST", "/api/v1/agent/changelog", json=payload)
