@@ -1,6 +1,7 @@
 import json
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.prompt import Prompt
 
@@ -60,7 +61,7 @@ def split(
         try:
             result = client.split_diff(diff, strategy=strategy)
         except APIError as e:
-            console.print(f"[red]Error:[/red] {e}")
+            console.print(f"[red]Error:[/red] {escape(str(e))}")
             raise typer.Exit(1)
 
     if json_output:
@@ -68,7 +69,7 @@ def split(
         raise typer.Exit(0)
 
     if result.get("error"):
-        console.print(f"[red]Error:[/red] {result['error']}")
+        console.print(f"[red]Error:[/red] {escape(result['error'])}")
         raise typer.Exit(1)
 
     splits = result.get("splits", [])

@@ -2,6 +2,7 @@ import json
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.prompt import Confirm
 
@@ -80,7 +81,7 @@ def auto(
         raise typer.Exit(0 if not result.error else 1)
 
     if result.error:
-        console.print(f"[red]Error:[/red] {result.error}")
+        console.print(f"[red]Error:[/red] {escape(result.error)}")
         raise typer.Exit(1)
 
     _display_result(result)
@@ -153,4 +154,4 @@ def _execute_single(message: str) -> None:
         else:
             console.print("[red]Failed to create commit[/red]")
     except GitError as e:
-        console.print(f"[red]Error:[/red] {e}")
+        console.print(f"[red]Error:[/red] {escape(str(e))}")

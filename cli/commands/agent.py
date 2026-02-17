@@ -1,5 +1,6 @@
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.prompt import Confirm
 
@@ -87,7 +88,7 @@ def agent(
         with console.status("[bold blue]Agent analyzing changes..."):
             result = client.run_agent(diff, verbose=verbose)
     except APIError as e:
-        console.print(f"[red]Error:[/red] {e}")
+        console.print(f"[red]Error:[/red] {escape(str(e))}")
         raise typer.Exit(1)
 
     if verbose and result.get("reasoning"):
@@ -120,7 +121,7 @@ def agent(
                 console.print("[red]Failed to create commit[/red]")
                 raise typer.Exit(1)
         except GitError as e:
-            console.print(f"[red]Error:[/red] {e}")
+            console.print(f"[red]Error:[/red] {escape(str(e))}")
             raise typer.Exit(1)
     else:
         console.print("[dim]Commit cancelled[/dim]")

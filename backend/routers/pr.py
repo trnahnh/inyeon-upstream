@@ -12,7 +12,7 @@ router = APIRouter(tags=["agent"])
 
 
 class PRRequest(BaseModel):
-    diff: str = Field(..., min_length=1, max_length=100000)
+    diff: str = Field(..., min_length=1)
     commits: list[dict[str, str]] = Field(default_factory=list)
     branch_name: str = Field(default="")
     base_branch: str = Field(default="main")

@@ -55,7 +55,7 @@ def get_cached(prompt: str) -> dict[str, Any] | None:
 
 
 def set_cached(prompt: str, response: dict[str, Any]) -> None:
-    """Cache an LLM response with LRU eviction."""
+    """Cache an LLM response with FIFO eviction."""
     if len(_cache) >= _CACHE_MAX_SIZE:
         oldest = next(iter(_cache))
         del _cache[oldest]

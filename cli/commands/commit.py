@@ -1,6 +1,7 @@
 import json
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.prompt import Confirm
 
@@ -133,7 +134,7 @@ def commit(
         result = client.generate_commit(diff, issue)
     except APIError as e:
         if not hook_mode:
-            console.print(f"[red]Error:[/red] {e}")
+            console.print(f"[red]Error:[/red] {escape(str(e))}")
         raise typer.Exit(1)
 
     if hook_mode:
@@ -165,7 +166,7 @@ def commit(
                 console.print("[red]Failed to create commit[/red]")
                 raise typer.Exit(1)
         except GitError as e:
-            console.print(f"[red]Error:[/red] {e}")
+            console.print(f"[red]Error:[/red] {escape(str(e))}")
             raise typer.Exit(1)
     else:
         console.print("[dim]Commit cancelled[/dim]")

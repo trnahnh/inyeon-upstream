@@ -2,6 +2,7 @@ import json
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.prompt import Confirm
 
@@ -67,11 +68,11 @@ def resolve(
         try:
             result = client.resolve_conflicts(conflicts)
         except APIError as e:
-            console.print(f"[red]Error:[/red] {e}")
+            console.print(f"[red]Error:[/red] {escape(str(e))}")
             raise typer.Exit(1)
 
     if result.get("error"):
-        console.print(f"[red]Error:[/red] {result['error']}")
+        console.print(f"[red]Error:[/red] {escape(result['error'])}")
         raise typer.Exit(1)
 
     if json_output:

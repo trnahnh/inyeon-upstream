@@ -2,6 +2,7 @@ import json
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 
 from cli.api_client import APIClient, APIError
@@ -61,11 +62,11 @@ def changelog(
                 to_ref=to_ref,
             )
         except APIError as e:
-            console.print(f"[red]Error:[/red] {e}")
+            console.print(f"[red]Error:[/red] {escape(str(e))}")
             raise typer.Exit(1)
 
     if result.get("error"):
-        console.print(f"[red]Error:[/red] {result['error']}")
+        console.print(f"[red]Error:[/red] {escape(result['error'])}")
         raise typer.Exit(1)
 
     if json_output:

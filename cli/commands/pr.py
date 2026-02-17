@@ -4,6 +4,8 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 
+from rich.markup import escape
+
 from cli.api_client import APIClient, APIError
 from cli.git_utils import (
     is_git_repo,
@@ -84,11 +86,11 @@ def pr(
                 base_branch=base_branch,
             )
         except APIError as e:
-            console.print(f"[red]Error:[/red] {e}")
+            console.print(f"[red]Error:[/red] {escape(str(e))}")
             raise typer.Exit(1)
 
     if result.get("error"):
-        console.print(f"[red]Error:[/red] {result['error']}")
+        console.print(f"[red]Error:[/red] {escape(result['error'])}")
         raise typer.Exit(1)
 
     if json_output:

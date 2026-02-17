@@ -2,6 +2,7 @@ import json
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 
 from cli.api_client import APIClient, APIError
@@ -95,7 +96,7 @@ def review(
     try:
         result = client.review(diff)
     except APIError as e:
-        console.print(f"[red]Error:[/red] {e}")
+        console.print(f"[red]Error:[/red] {escape(str(e))}")
         raise typer.Exit(1)
 
     if json_output:

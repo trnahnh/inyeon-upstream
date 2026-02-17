@@ -2,6 +2,7 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 
 from cli.api_client import APIClient, APIError
 from cli.git_utils import is_git_repo, get_repo_id, get_tracked_files
@@ -125,7 +126,7 @@ def index(
             console.print(f"[bold]Repo:[/bold] {repo_id}")
             console.print(f"[bold]Indexed files:[/bold] {result['indexed_files']}")
         except APIError as e:
-            console.print(f"[red]Error:[/red] {e}")
+            console.print(f"[red]Error:[/red] {escape(str(e))}")
             raise typer.Exit(1)
         return
 
@@ -134,7 +135,7 @@ def index(
             client.rag_clear(repo_id)
             console.print(f"[green]Cleared index for {repo_id}[/green]")
         except APIError as e:
-            console.print(f"[red]Error:[/red] {e}")
+            console.print(f"[red]Error:[/red] {escape(str(e))}")
             raise typer.Exit(1)
         return
 
@@ -165,7 +166,7 @@ def index(
     try:
         result = client.rag_index(repo_id, files_content)
     except APIError as e:
-        console.print(f"[red]Error:[/red] {e}")
+        console.print(f"[red]Error:[/red] {escape(str(e))}")
         raise typer.Exit(1)
 
     console.print(

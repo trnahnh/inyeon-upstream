@@ -3,6 +3,7 @@ import sys
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
@@ -130,7 +131,7 @@ def analyze(
     try:
         result = client.analyze(diff_content, context)
     except APIError as e:
-        console.print(f"[red]Error:[/red] {e}")
+        console.print(f"[red]Error:[/red] {escape(str(e))}")
         raise typer.Exit(1)
 
     # Output
