@@ -21,7 +21,7 @@ app.add_typer(split.app, name="split")
 @app.command()
 def version():
     """Show version information."""
-    typer.echo("inyeon v0.1.0")
+    typer.echo("inyeon v2.0.0")
 
 
 @app.command()

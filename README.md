@@ -19,8 +19,10 @@ pip install git+https://github.com/suka712/inyeon-upstream.git
 ### Generate Commit Messages
 ```bash
 inyeon commit --staged                # From staged changes
+inyeon commit --all                   # From all uncommitted changes
 inyeon commit --staged --dry-run      # Preview without committing
 inyeon commit --staged --issue "#123" # Reference an issue
+inyeon commit --staged --json         # Output raw JSON
 ```
 
 ### Split into Atomic Commits (v2.0.0)
@@ -29,6 +31,7 @@ inyeon split --staged --preview           # Preview how changes will be split
 inyeon split --staged --interactive       # Approve each commit individually
 inyeon split --staged --execute           # Auto-commit all groups
 inyeon split --staged --strategy semantic # Use specific strategy
+inyeon split --all --strategy directory   # Split all changes by folder
 ```
 
 **Strategies:**
@@ -41,6 +44,7 @@ inyeon split --staged --strategy semantic # Use specific strategy
 ```bash
 inyeon review --staged # Review staged changes
 inyeon review --all    # Review all uncommitted changes
+inyeon review --json   # Output raw JSON
 ```
 
 ### Analyze Diffs
@@ -52,8 +56,18 @@ inyeon analyze -c "refactoring auth" # With context
 
 ### Index Codebase (RAG)
 ```bash
-inyeon index # Index for smart context retrieval
+inyeon index          # Index for smart context retrieval
+inyeon index --stats  # Show index statistics
+inyeon index --clear  # Clear the index
 ```
+
+### Utilities
+```bash
+inyeon version        # Show version
+inyeon health         # Check backend & LLM connection status
+```
+
+> **Tip:** All commands accept `--api <url>` to override the backend URL, or set `INYEON_API_URL` env var.
 
 ---
 
@@ -114,14 +128,36 @@ inyeon index # Index for smart context retrieval
 
 | **Endpoint** | **Purpose** |
 |--------------|-------------|
+| `GET /health` | Health check (LLM status) |
 | `POST /api/v1/generate-commit` | Generate commit message |
+| `POST /api/v1/analyze` | Analyze a diff |
+| `POST /api/v1/agent/run` | Run commit agent directly |
 | `POST /api/v1/agent/split` | Split diff into atomic commits |
 | `POST /api/v1/agent/review` | AI code review |
 | `POST /api/v1/agent/orchestrate` | Auto-route to agent |
+| `GET /api/v1/agent/list` | List available agents |
 | `POST /api/v1/rag/index` | Index codebase |
 | `POST /api/v1/rag/search` | Semantic code search |
+| `POST /api/v1/rag/stats` | Index statistics |
+| `POST /api/v1/rag/clear` | Clear index for repo |
 
 **Live Docs:** https://inyeon-upstream-production.up.railway.app/docs
+
+---
+
+## ⚙️ Configuration
+
+All settings use the `INYEON_` prefix and can be set via environment variables or a `.env` file.
+
+| **Variable** | **Default** | **Description** |
+|--------------|-------------|-----------------|
+| `INYEON_LLM_PROVIDER` | `ollama` | LLM backend (`ollama` or `gemini`) |
+| `INYEON_OLLAMA_URL` | `http://localhost:11434` | Ollama server URL |
+| `INYEON_OLLAMA_MODEL` | `qwen2.5-coder:7b` | Ollama model name |
+| `INYEON_OLLAMA_TIMEOUT` | `120` | Ollama request timeout (seconds) |
+| `INYEON_GEMINI_API_KEY` | — | Google Gemini API key (required for `gemini` provider) |
+| `INYEON_GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model name |
+| `INYEON_API_URL` | — | Backend URL for CLI (overrides `--api` flag) |
 
 ---
 
