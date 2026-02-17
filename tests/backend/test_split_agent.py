@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 from backend.agents.split_agent import SplitAgent
 from backend.agents.split_state import SplitAgentState
@@ -121,7 +121,9 @@ class TestSplitAgent:
         assert result["error"] is None
 
     @pytest.mark.asyncio
-    async def test_split_agent_invalid_strategy_uses_hybrid(self, mock_llm, sample_diff):
+    async def test_split_agent_invalid_strategy_uses_hybrid(
+        self, mock_llm, sample_diff
+    ):
         agent = SplitAgent(llm=mock_llm, retriever=None)
         result = await agent.run(diff=sample_diff, strategy="invalid_strategy")
 
