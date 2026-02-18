@@ -1,3 +1,5 @@
+import json
+
 from backend.diff import ParsedDiff, ParsedFile
 from backend.services.llm.base import LLMProvider
 from .base import ClusteringStrategy
@@ -16,15 +18,14 @@ class ConventionalStrategy(ClusteringStrategy):
         self.llm = llm
 
     async def cluster(self, parsed_diff: ParsedDiff) -> list[CommitGroup]:
-        classifications: dict[str, str] = {}
+        if not parsed_diff.files:
+            return []
 
-        for file in parsed_diff.files:
-            commit_type = await self._classify_file(file)
-            classifications[file.path] = commit_type
+        classifications = await self._classify_files(parsed_diff.files)
 
         groups: dict[str, CommitGroup] = {}
         for file in parsed_diff.files:
-            commit_type = classifications[file.path]
+            commit_type = classifications.get(file.path, "chore")
 
             if commit_type not in groups:
                 groups[commit_type] = CommitGroup(
@@ -43,23 +44,35 @@ class ConventionalStrategy(ClusteringStrategy):
 
         return list(groups.values())
 
-    async def _classify_file(self, file: ParsedFile) -> str:
-        hunk_preview = ""
-        if file.hunks:
-            hunk_preview = file.hunks[0].content[:500]
+    async def _classify_files(self, files: list[ParsedFile]) -> dict[str, str]:
+        """Classify all files in a single LLM call to avoid per-file rate limit hits."""
+        file_entries = []
+        for file in files:
+            preview = file.hunks[0].content[:300] if file.hunks else ""
+            file_entries.append(
+                f'- path: "{file.path}", change_type: "{file.change_type.value}", preview: {json.dumps(preview[:200])}'
+            )
 
-        prompt = f"""Classify this file change into ONE conventional commit type.
+        prompt = f"""Classify each file change into ONE conventional commit type.
 
-FILE: {file.path}
-CHANGE TYPE: {file.change_type.value}
-PREVIEW:
-{hunk_preview}
+FILES:
+{chr(10).join(file_entries)}
 
-Available types: {', '.join(COMMIT_TYPES)}
+Available types: {", ".join(COMMIT_TYPES)}
 
-Respond with ONLY the type name (e.g., "feat" or "fix"), nothing else."""
+Respond with a JSON object mapping each file path to its type.
+Example: {{"src/app.py": "feat", "tests/test_app.py": "test"}}
+Output ONLY valid JSON, nothing else."""
 
-        response = await self.llm.generate(prompt)
-        result = response.get("text", "chore").strip().lower()
+        try:
+            response = await self.llm.generate(prompt, json_mode=True)
+            if isinstance(response, dict):
+                return {
+                    path: (v if v in COMMIT_TYPES else "chore")
+                    for path, v in response.items()
+                }
+        except Exception:
+            pass
 
-        return result if result in COMMIT_TYPES else "chore"
+        # Fallback: everything is chore
+        return {f.path: "chore" for f in files}
