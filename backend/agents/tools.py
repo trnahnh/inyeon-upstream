@@ -4,8 +4,6 @@ from typing import Any, Callable
 
 
 class Tool:
-    """A tool that agents can invoke to interact with the environment."""
-
     def __init__(
         self,
         name: str,
@@ -19,7 +17,6 @@ class Tool:
         self.func = func
 
     def to_ollama_format(self) -> dict[str, Any]:
-        """Convert to Ollama's tool format."""
         return {
             "type": "function",
             "function": {
@@ -30,13 +27,23 @@ class Tool:
         }
 
     async def execute(self, **kwargs) -> str:
-        """Execute the tool with given arguments."""
         return await self.func(**kwargs)
 
 
+def _safe_resolve(path: str, repo_path: str) -> str:
+    repo_root = os.path.realpath(repo_path)
+    resolved = os.path.realpath(os.path.join(repo_root, path))
+    if not resolved.startswith(repo_root + os.sep) and resolved != repo_root:
+        raise PermissionError(f"Path escapes repository root: {path}")
+    return resolved
+
+
 async def read_file(path: str, repo_path: str = ".") -> str:
-    """Read a file from the repository."""
-    full_path = os.path.join(repo_path, path)
+    try:
+        full_path = _safe_resolve(path, repo_path)
+    except PermissionError as e:
+        return f"Error: {e}"
+
     try:
         with open(full_path, "r", encoding="utf-8") as f:
             content = f.read()
@@ -50,8 +57,11 @@ async def read_file(path: str, repo_path: str = ".") -> str:
 
 
 async def list_files(directory: str = ".", repo_path: str = ".") -> str:
-    """List files in a directory."""
-    full_path = os.path.join(repo_path, directory)
+    try:
+        full_path = _safe_resolve(directory, repo_path)
+    except PermissionError as e:
+        return f"Error: {e}"
+
     try:
         files = os.listdir(full_path)
         return "\n".join(files[:50])
@@ -60,7 +70,7 @@ async def list_files(directory: str = ".", repo_path: str = ".") -> str:
 
 
 async def get_git_log(count: int = 5, repo_path: str = ".") -> str:
-    """Get recent commit history."""
+    count = max(1, min(count, 50))
     try:
         result = subprocess.run(
             ["git", "log", f"-{count}", "--oneline"],
