@@ -28,7 +28,8 @@ class SplitAgent(BaseAgent):
             return await parse_diff_node(s)
 
         async def _cluster(s: SplitAgentState) -> dict[str, Any]:
-            return await cluster_hunks_node(s, self.llm, self.retriever)
+            embedding_svc = self.retriever.embeddings if self.retriever else None
+            return await cluster_hunks_node(s, self.llm, embedding_svc)
 
         async def _generate(s: SplitAgentState) -> dict[str, Any]:
             return await generate_messages_node(s, self.llm)

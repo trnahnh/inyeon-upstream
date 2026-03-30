@@ -82,6 +82,7 @@ class CommitAgent(BaseAgent):
             "file_contents": {},
             "rag_context": [],
             "commit_message": None,
+            "review": None,
             "reasoning": [],
         }
 

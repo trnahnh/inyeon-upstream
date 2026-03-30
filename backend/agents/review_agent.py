@@ -89,6 +89,7 @@ Focus on:
             "file_contents": {},
             "rag_context": [],
             "commit_message": None,
+            "review": None,
             "reasoning": [],
         }
 
