@@ -1,7 +1,11 @@
+import time
+from collections import defaultdict
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
 
 from backend.core.config import settings
 from backend.core.dependencies import get_llm_provider
@@ -11,7 +15,6 @@ from backend.routers import analyze, changelog, commit, agent, conflict, pr, rag
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan handler."""
     logger.info("Starting Inyeon API...")
     llm = get_llm_provider()
 
@@ -32,13 +35,66 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=origins,
+    allow_credentials="*" not in origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+class APIKeyMiddleware(BaseHTTPMiddleware):
+    OPEN_PATHS = {"/health", "/", "/docs", "/openapi.json", "/redoc"}
+
+    async def dispatch(self, request: Request, call_next):
+        if not settings.api_key:
+            return await call_next(request)
+
+        if request.method == "OPTIONS" or request.url.path in self.OPEN_PATHS:
+            return await call_next(request)
+
+        key = request.headers.get("X-API-Key")
+        if key != settings.api_key:
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Invalid or missing API key"},
+            )
+
+        return await call_next(request)
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app, rpm: int = 30):
+        super().__init__(app)
+        self.rpm = rpm
+        self._requests: dict[str, list[float]] = defaultdict(list)
+
+    async def dispatch(self, request: Request, call_next):
+        if self.rpm <= 0 or request.method == "OPTIONS" or not request.url.path.startswith("/api/"):
+            return await call_next(request)
+
+        client_ip = request.client.host if request.client else "unknown"
+        now = time.time()
+        window_start = now - 60
+
+        reqs = self._requests[client_ip]
+        self._requests[client_ip] = [t for t in reqs if t > window_start]
+
+        if len(self._requests[client_ip]) >= self.rpm:
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Rate limit exceeded"},
+            )
+
+        self._requests[client_ip].append(now)
+        return await call_next(request)
+
+
+app.add_middleware(APIKeyMiddleware)
+app.add_middleware(RateLimitMiddleware, rpm=settings.rate_limit_rpm)
 
 app.include_router(analyze.router, prefix="/api/v1", tags=["analyze"])
 app.include_router(commit.router, prefix="/api/v1", tags=["commit"])
@@ -52,7 +108,6 @@ app.include_router(split.router, prefix="/api/v1")
 
 @app.get("/health", tags=["health"])
 async def health_check():
-    """Health check endpoint."""
     llm = get_llm_provider()
     llm_healthy = await llm.is_healthy()
 
@@ -68,7 +123,6 @@ async def health_check():
 
 @app.get("/", tags=["root"])
 async def root():
-    """Root endpoint with API information."""
     return {
         "name": settings.api_title,
         "version": settings.api_version,
