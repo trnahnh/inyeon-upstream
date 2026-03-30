@@ -125,7 +125,7 @@ inyeon health  # Check backend & LLM connection status
 - **Changelog Generation** - Groups commits by conventional type with narrative summaries
 - **Git Hook Integration** - Auto-generate commit messages via prepare-commit-msg hook
 - **RAG-Powered Context** - Understands your codebase via ChromaDB embeddings
-- **Flexible LLM** - Gemini API (cloud) or Ollama (local)
+- **Flexible LLM** - OpenAI, Gemini (cloud) or Ollama (local)
 - **Conventional Commits** - Auto-generates properly formatted messages
 
 ---
@@ -156,7 +156,8 @@ inyeon health  # Check backend & LLM connection status
 │                         ▼                          │
 │  ┌──────────────┐  ┌─────────────────────────────┐ │
 │  │  LLM Factory │  │     Cost Optimization       │ │
-│  │ Gemini/Ollama│  │  Truncation  Cache  Batch   │ │
+│  │OpenAI/Gemini/│  │  Truncation  Cache  Batch   │ │
+│  │    Ollama    │  │                             │ │
 │  └──────────────┘  └─────────────────────────────┘ │
 │                                                    │
 │  ┌─────────────────────────────────────────────┐   │
@@ -176,7 +177,7 @@ inyeon health  # Check backend & LLM connection status
 | **Backend** | FastAPI, Pydantic |
 | **Agents** | LangGraph |
 | **Clustering** | scikit-learn, NumPy |
-| **LLM** | Gemini 2.5 Flash, Ollama |
+| **LLM** | OpenAI GPT-4.1, Gemini 2.5 Flash, Ollama |
 | **RAG** | ChromaDB, Gemini Embeddings |
 | **Deploy** | Docker, Railway |
 
@@ -212,12 +213,14 @@ All settings use the `INYEON_` prefix and can be set via environment variables o
 
 | **Variable** | **Default** | **Description** |
 |--------------|-------------|-----------------|
-| `INYEON_LLM_PROVIDER` | `ollama` | LLM backend (`ollama` or `gemini`) |
+| `INYEON_LLM_PROVIDER` | `ollama` | LLM backend (`ollama`, `gemini`, or `openai`) |
 | `INYEON_OLLAMA_URL` | `http://localhost:11434` | Ollama server URL |
 | `INYEON_OLLAMA_MODEL` | `qwen2.5-coder:7b` | Ollama model name |
 | `INYEON_OLLAMA_TIMEOUT` | `120` | Ollama request timeout (seconds) |
 | `INYEON_GEMINI_API_KEY` | — | Google Gemini API key (required for `gemini` provider) |
 | `INYEON_GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model name |
+| `INYEON_OPENAI_API_KEY` | — | OpenAI API key (required for `openai` provider) |
+| `INYEON_OPENAI_MODEL` | `gpt-4.1-mini` | OpenAI model name |
 | `INYEON_API_URL` | — | Backend URL for CLI (overrides `--api` flag) |
 | `INYEON_MAX_DIFF_CHARS` | `30000` | Max diff size before truncation |
 | `INYEON_ENABLE_CACHE` | `true` | Enable response caching |
