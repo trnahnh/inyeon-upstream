@@ -1,8 +1,9 @@
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 from fastapi.testclient import TestClient
 
 from backend.main import app
+from backend.core.dependencies import get_llm_provider
 
 
 @pytest.fixture
@@ -40,6 +41,12 @@ def mock_llm():
 
 class TestSplitRouter:
 
+    def setup_method(self):
+        app.dependency_overrides.clear()
+
+    def teardown_method(self):
+        app.dependency_overrides.clear()
+
     def test_split_endpoint_exists(self, client):
         response = client.post(
             "/api/v1/agent/split",
@@ -47,9 +54,8 @@ class TestSplitRouter:
         )
         assert response.status_code != 404
 
-    @patch("backend.routers.split.get_llm")
-    def test_split_returns_response(self, mock_get_llm, client, sample_diff, mock_llm):
-        mock_get_llm.return_value = mock_llm
+    def test_split_returns_response(self, client, sample_diff, mock_llm):
+        app.dependency_overrides[get_llm_provider] = lambda: mock_llm
 
         response = client.post(
             "/api/v1/agent/split",
@@ -62,9 +68,8 @@ class TestSplitRouter:
         assert "total_groups" in data
         assert "reasoning" in data
 
-    @patch("backend.routers.split.get_llm")
-    def test_split_empty_diff(self, mock_get_llm, client, mock_llm):
-        mock_get_llm.return_value = mock_llm
+    def test_split_empty_diff(self, client, mock_llm):
+        app.dependency_overrides[get_llm_provider] = lambda: mock_llm
 
         response = client.post(
             "/api/v1/agent/split",
@@ -82,9 +87,8 @@ class TestSplitRouter:
         )
         assert response.status_code == 422
 
-    @patch("backend.routers.split.get_llm")
-    def test_split_default_strategy(self, mock_get_llm, client, sample_diff, mock_llm):
-        mock_get_llm.return_value = mock_llm
+    def test_split_default_strategy(self, client, sample_diff, mock_llm):
+        app.dependency_overrides[get_llm_provider] = lambda: mock_llm
 
         response = client.post(
             "/api/v1/agent/split",
@@ -93,9 +97,8 @@ class TestSplitRouter:
 
         assert response.status_code == 200
 
-    @patch("backend.routers.split.get_llm")
-    def test_split_all_strategies(self, mock_get_llm, client, sample_diff, mock_llm):
-        mock_get_llm.return_value = mock_llm
+    def test_split_all_strategies(self, client, sample_diff, mock_llm):
+        app.dependency_overrides[get_llm_provider] = lambda: mock_llm
 
         strategies = ["directory", "conventional", "hybrid"]
         for strategy in strategies:

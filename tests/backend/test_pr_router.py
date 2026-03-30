@@ -1,5 +1,7 @@
-from unittest.mock import patch, AsyncMock
+from unittest.mock import AsyncMock
 
+from backend.main import app
+from backend.core.dependencies import get_llm_provider
 from backend.utils.cost import clear_cache
 
 
@@ -7,13 +9,16 @@ class TestPRRouter:
 
     def setup_method(self):
         clear_cache()
+        app.dependency_overrides.clear()
+
+    def teardown_method(self):
+        app.dependency_overrides.clear()
 
     def test_pr_endpoint_exists(self, client):
         response = client.post("/api/v1/agent/pr", json={"diff": ""})
         assert response.status_code != 404
 
-    @patch("backend.routers.pr.get_llm")
-    def test_pr_returns_response(self, mock_get_llm, client, sample_diff):
+    def test_pr_returns_response(self, client, sample_diff):
         mock_llm = AsyncMock()
         mock_llm.generate = AsyncMock(
             return_value={
@@ -24,7 +29,7 @@ class TestPRRouter:
                 "breaking_changes": [],
             }
         )
-        mock_get_llm.return_value = mock_llm
+        app.dependency_overrides[get_llm_provider] = lambda: mock_llm
 
         response = client.post(
             "/api/v1/agent/pr",

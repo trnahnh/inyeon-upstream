@@ -188,12 +188,12 @@ class TestConventionalStrategy:
     @pytest.mark.asyncio
     async def test_cluster_by_type(self, sample_parsed_diff, mock_llm):
         mock_llm.generate = AsyncMock(
-            side_effect=[
-                {"text": "feat"},
-                {"text": "feat"},
-                {"text": "test"},
-                {"text": "docs"},
-            ]
+            return_value={
+                "backend/agents/commit.py": "feat",
+                "backend/agents/review.py": "feat",
+                "tests/test_agents.py": "test",
+                "README.md": "docs",
+            }
         )
 
         strategy = ConventionalStrategy(mock_llm)
@@ -209,7 +209,9 @@ class TestConventionalStrategy:
     async def test_cluster_invalid_type_defaults_to_chore(
         self, single_file_diff, mock_llm
     ):
-        mock_llm.generate = AsyncMock(return_value={"text": "invalid_type"})
+        mock_llm.generate = AsyncMock(
+            return_value={"main.py": "invalid_type"}
+        )
 
         strategy = ConventionalStrategy(mock_llm)
         groups = await strategy.cluster(single_file_diff)
