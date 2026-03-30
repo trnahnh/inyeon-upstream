@@ -13,5 +13,7 @@ def get_llm_provider() -> LLMProvider:
         ollama_model=settings.ollama_model,
         gemini_api_key=settings.gemini_api_key,
         gemini_model=settings.gemini_model,
+        openai_api_key=settings.openai_api_key,
+        openai_model=settings.openai_model,
         timeout=settings.ollama_timeout,
     )
