@@ -1,5 +1,6 @@
+import asyncio
+import hmac
 import time
-from collections import defaultdict
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -56,8 +57,8 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         if request.method == "OPTIONS" or request.url.path in self.OPEN_PATHS:
             return await call_next(request)
 
-        key = request.headers.get("X-API-Key")
-        if key != settings.api_key:
+        key = request.headers.get("X-API-Key", "")
+        if not hmac.compare_digest(key, settings.api_key):
             return JSONResponse(
                 status_code=401,
                 content={"detail": "Invalid or missing API key"},
@@ -70,7 +71,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, rpm: int = 30):
         super().__init__(app)
         self.rpm = rpm
-        self._requests: dict[str, list[float]] = defaultdict(list)
+        self._requests: dict[str, list[float]] = {}
+        self._lock = asyncio.Lock()
+        self._last_prune = 0.0
 
     async def dispatch(self, request: Request, call_next):
         if self.rpm <= 0 or request.method == "OPTIONS" or not request.url.path.startswith("/api/"):
@@ -80,16 +83,27 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         now = time.time()
         window_start = now - 60
 
-        reqs = self._requests[client_ip]
-        self._requests[client_ip] = [t for t in reqs if t > window_start]
+        async with self._lock:
+            # Prune stale IPs every 5 minutes
+            if now - self._last_prune > 300:
+                stale = [ip for ip, ts in self._requests.items() if not ts or ts[-1] < window_start]
+                for ip in stale:
+                    del self._requests[ip]
+                self._last_prune = now
 
-        if len(self._requests[client_ip]) >= self.rpm:
-            return JSONResponse(
-                status_code=429,
-                content={"detail": "Rate limit exceeded"},
-            )
+            reqs = self._requests.get(client_ip, [])
+            reqs = [t for t in reqs if t > window_start]
 
-        self._requests[client_ip].append(now)
+            if len(reqs) >= self.rpm:
+                self._requests[client_ip] = reqs
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Rate limit exceeded"},
+                )
+
+            reqs.append(now)
+            self._requests[client_ip] = reqs
+
         return await call_next(request)
 
 
