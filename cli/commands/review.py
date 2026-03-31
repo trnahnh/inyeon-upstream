@@ -70,6 +70,9 @@ def review(
     api_url: str = typer.Option(
         None, "--api", help="Backend API URL", envvar="INYEON_API_URL"
     ),
+    provider: str = typer.Option(
+        None, "--provider", "-p", help="LLM provider (openai, gemini, ollama)"
+    ),
 ):
     """Review code changes and get feedback."""
     if not is_git_repo():
@@ -91,7 +94,7 @@ def review(
         raise typer.Exit(1)
 
     console.print("[dim]Reviewing code...[/dim]")
-    client = APIClient(base_url=api_url)
+    client = APIClient(base_url=api_url, provider=provider)
 
     try:
         result = client.review(diff)

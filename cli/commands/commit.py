@@ -89,6 +89,12 @@ def commit(
         help="Backend API URL (overrides config)",
         envvar="INYEON_API_URL",
     ),
+    provider: str = typer.Option(
+        None,
+        "--provider",
+        "-p",
+        help="LLM provider (openai, gemini, ollama)",
+    ),
     hook_mode: bool = typer.Option(
         False,
         "--hook-mode",
@@ -129,7 +135,7 @@ def commit(
     # Call backend
     if not hook_mode:
         console.print("[dim]Generating commit message...[/dim]", end="\r")
-    client = APIClient(base_url=api_url)
+    client = APIClient(base_url=api_url, provider=provider)
 
     try:
         result = client.generate_commit(diff, issue)

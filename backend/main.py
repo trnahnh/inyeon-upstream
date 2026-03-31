@@ -121,6 +121,20 @@ async def health_check():
     }
 
 
+@app.get("/providers", tags=["health"])
+async def list_providers():
+    available = []
+    if settings.gemini_api_key:
+        available.append({"name": "gemini", "model": settings.gemini_model})
+    if settings.openai_api_key:
+        available.append({"name": "openai", "model": settings.openai_model})
+    available.append({"name": "ollama", "model": settings.ollama_model})
+    return {
+        "default": settings.llm_provider,
+        "available": available,
+    }
+
+
 @app.get("/", tags=["root"])
 async def root():
     return {

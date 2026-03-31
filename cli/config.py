@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     api_url: str = "https://inyeon-upstream-production.up.railway.app"
     timeout: int = 120
     api_key: str | None = None
+    llm_provider: str | None = None
 
     default_format: str = "rich"
 

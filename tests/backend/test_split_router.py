@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock
 from fastapi.testclient import TestClient
 
 from backend.main import app
-from backend.core.dependencies import get_llm_provider
+from backend.core.dependencies import get_llm_from_request
 
 
 @pytest.fixture
@@ -55,7 +55,7 @@ class TestSplitRouter:
         assert response.status_code != 404
 
     def test_split_returns_response(self, client, sample_diff, mock_llm):
-        app.dependency_overrides[get_llm_provider] = lambda: mock_llm
+        app.dependency_overrides[get_llm_from_request] = lambda: mock_llm
 
         response = client.post(
             "/api/v1/agent/split",
@@ -69,7 +69,7 @@ class TestSplitRouter:
         assert "reasoning" in data
 
     def test_split_empty_diff(self, client, mock_llm):
-        app.dependency_overrides[get_llm_provider] = lambda: mock_llm
+        app.dependency_overrides[get_llm_from_request] = lambda: mock_llm
 
         response = client.post(
             "/api/v1/agent/split",
@@ -88,7 +88,7 @@ class TestSplitRouter:
         assert response.status_code == 422
 
     def test_split_default_strategy(self, client, sample_diff, mock_llm):
-        app.dependency_overrides[get_llm_provider] = lambda: mock_llm
+        app.dependency_overrides[get_llm_from_request] = lambda: mock_llm
 
         response = client.post(
             "/api/v1/agent/split",
@@ -98,7 +98,7 @@ class TestSplitRouter:
         assert response.status_code == 200
 
     def test_split_all_strategies(self, client, sample_diff, mock_llm):
-        app.dependency_overrides[get_llm_provider] = lambda: mock_llm
+        app.dependency_overrides[get_llm_from_request] = lambda: mock_llm
 
         strategies = ["directory", "conventional", "hybrid"]
         for strategy in strategies:

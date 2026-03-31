@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from backend.agents.changelog_agent import ChangelogAgent
 from backend.services.llm import LLMProvider
-from backend.core.dependencies import get_llm_provider
+from backend.core.dependencies import get_llm_from_request
 
 
 router = APIRouter(tags=["agent"])
@@ -27,7 +27,7 @@ class ChangelogResponse(BaseModel):
 @router.post("/agent/changelog", response_model=ChangelogResponse)
 async def generate_changelog(
     request: ChangelogRequest,
-    llm: LLMProvider = Depends(get_llm_provider),
+    llm: LLMProvider = Depends(get_llm_from_request),
 ):
     try:
         agent = ChangelogAgent(llm=llm, retriever=None)

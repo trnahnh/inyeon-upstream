@@ -35,6 +35,7 @@ def auto(
     json_output: bool = typer.Option(False, "--json", "-j", help="Output raw JSON"),
     base_branch: str = typer.Option("main", "--branch", "-b", help="Base branch for PR"),
     api_url: str = typer.Option(None, "--api", envvar="INYEON_API_URL"),
+    provider: str = typer.Option(None, "--provider", "-p", help="LLM provider (openai, gemini, ollama)"),
 ):
     """Run the full workflow: split, commit, review, PR."""
     if not is_git_repo():
@@ -55,7 +56,7 @@ def auto(
 
     branch_name = get_current_branch()
     commits = get_branch_commits(base_branch)
-    client = APIClient(base_url=api_url)
+    client = APIClient(base_url=api_url, provider=provider)
     pipeline = Pipeline(client)
 
     with console.status("[bold blue]Running pipeline..."):

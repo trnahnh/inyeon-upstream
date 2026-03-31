@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import ValidationError
 
-from backend.core.dependencies import get_llm_provider
+from backend.core.dependencies import get_llm_from_request
 from backend.models.schemas import CommitRequest, CommitResponse
 from backend.prompts.commit_prompt import build_commit_prompt
 from backend.services.llm import LLMProvider, LLMError
@@ -18,7 +18,7 @@ router = APIRouter()
 )
 async def generate_commit(
     request: CommitRequest,
-    llm: LLMProvider = Depends(get_llm_provider),
+    llm: LLMProvider = Depends(get_llm_from_request),
 ) -> CommitResponse:
     """
     Generate a conventional commit message including:

@@ -14,16 +14,20 @@ class APIClient:
         base_url: str | None = None,
         timeout: int | None = None,
         api_key: str | None = None,
+        provider: str | None = None,
     ):
         self.base_url = base_url or settings.api_url
         self.timeout = timeout or settings.timeout
         self._api_key = api_key or settings.api_key
+        self._provider = provider or settings.llm_provider
 
     def _request(self, method: str, endpoint: str, **kwargs) -> dict:
         url = f"{self.base_url}{endpoint}"
         headers = kwargs.pop("headers", {})
         if self._api_key:
             headers["X-API-Key"] = self._api_key
+        if self._provider:
+            headers["X-LLM-Provider"] = self._provider
 
         try:
             with httpx.Client(timeout=self.timeout) as client:
@@ -47,6 +51,9 @@ class APIClient:
 
     def health_check(self) -> dict:
         return self._request("GET", "/health")
+
+    def list_providers(self) -> dict:
+        return self._request("GET", "/providers")
 
     def analyze(self, diff: str, context: str | None = None) -> dict:
         payload = {"diff": diff}

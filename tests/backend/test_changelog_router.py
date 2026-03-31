@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock
 
 from backend.main import app
-from backend.core.dependencies import get_llm_provider
+from backend.core.dependencies import get_llm_from_request
 from backend.utils.cost import clear_cache
 
 
@@ -31,7 +31,7 @@ class TestChangelogRouter:
                 "summary": "Release summary.",
             }
         )
-        app.dependency_overrides[get_llm_provider] = lambda: mock_llm
+        app.dependency_overrides[get_llm_from_request] = lambda: mock_llm
 
         response = client.post(
             "/api/v1/agent/changelog",

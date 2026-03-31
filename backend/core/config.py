@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 try:
     _pkg_version = version("inyeon")
 except PackageNotFoundError:
-    _pkg_version = "3.0.0"
+    _pkg_version = "3.5.0"
 
 
 class Settings(BaseSettings):
@@ -19,6 +19,9 @@ class Settings(BaseSettings):
 
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-2.5-flash"
+
+    openai_api_key: str | None = None
+    openai_model: str = "gpt-4.1-mini"
 
     api_title: str = "Inyeon API"
     api_version: str = _pkg_version

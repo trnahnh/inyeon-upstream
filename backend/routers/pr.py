@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from backend.agents.pr_agent import PRAgent
 from backend.services.llm import LLMProvider
-from backend.core.dependencies import get_llm_provider
+from backend.core.dependencies import get_llm_from_request
 
 
 router = APIRouter(tags=["agent"])
@@ -28,7 +28,7 @@ class PRResponse(BaseModel):
 @router.post("/agent/pr", response_model=PRResponse)
 async def generate_pr(
     request: PRRequest,
-    llm: LLMProvider = Depends(get_llm_provider),
+    llm: LLMProvider = Depends(get_llm_from_request),
 ):
     try:
         agent = PRAgent(llm=llm, retriever=None)

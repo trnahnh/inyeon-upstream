@@ -4,7 +4,7 @@ from typing import Literal
 
 from backend.agents.split_agent import SplitAgent
 from backend.services.llm import LLMProvider
-from backend.core.dependencies import get_llm_provider
+from backend.core.dependencies import get_llm_from_request
 
 
 router = APIRouter(tags=["agent"])
@@ -37,7 +37,7 @@ class SplitResponse(BaseModel):
 @router.post("/agent/split", response_model=SplitResponse)
 async def split_diff(
     request: SplitRequest,
-    llm: LLMProvider = Depends(get_llm_provider),
+    llm: LLMProvider = Depends(get_llm_from_request),
 ):
     try:
         agent = SplitAgent(llm=llm, retriever=None)

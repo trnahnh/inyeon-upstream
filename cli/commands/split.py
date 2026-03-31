@@ -38,6 +38,7 @@ def split(
     ),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output raw JSON"),
     api_url: str = typer.Option(None, "--api", envvar="INYEON_API_URL"),
+    provider: str = typer.Option(None, "--provider", "-P", help="LLM provider (openai, gemini, ollama)"),
 ):
     if not is_git_repo():
         console.print("[red]Error:[/red] Not a git repository")
@@ -55,7 +56,7 @@ def split(
         console.print("[yellow]No changes to split[/yellow]")
         raise typer.Exit(0)
 
-    client = APIClient(base_url=api_url)
+    client = APIClient(base_url=api_url, provider=provider)
 
     with console.status("[bold blue]Analyzing and splitting changes..."):
         try:

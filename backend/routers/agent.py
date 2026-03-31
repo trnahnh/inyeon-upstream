@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from backend.agents import CommitAgent, ReviewAgent, AgentOrchestrator
 from backend.services.llm import LLMProvider
-from backend.core.dependencies import get_llm_provider
+from backend.core.dependencies import get_llm_from_request
 
 
 router = APIRouter(prefix="/agent", tags=["agent"])
@@ -37,7 +37,7 @@ class OrchestrationRequest(BaseModel):
 @router.post("/run", response_model=AgentCommitResponse)
 async def run_commit_agent(
     request: AgentRequest,
-    llm: LLMProvider = Depends(get_llm_provider),
+    llm: LLMProvider = Depends(get_llm_from_request),
 ):
     try:
         agent = CommitAgent(llm)
@@ -55,7 +55,7 @@ async def run_commit_agent(
 @router.post("/review", response_model=ReviewResponse)
 async def run_review_agent(
     request: AgentRequest,
-    llm: LLMProvider = Depends(get_llm_provider),
+    llm: LLMProvider = Depends(get_llm_from_request),
 ):
     try:
         agent = ReviewAgent(llm)
@@ -72,7 +72,7 @@ async def run_review_agent(
 @router.post("/orchestrate")
 async def orchestrate(
     request: OrchestrationRequest,
-    llm: LLMProvider = Depends(get_llm_provider),
+    llm: LLMProvider = Depends(get_llm_from_request),
 ):
     try:
         orchestrator = AgentOrchestrator(llm)
@@ -87,6 +87,6 @@ async def orchestrate(
 
 
 @router.get("/list")
-async def list_agents(llm: LLMProvider = Depends(get_llm_provider)):
+async def list_agents(llm: LLMProvider = Depends(get_llm_from_request)):
     orchestrator = AgentOrchestrator(llm)
     return {"agents": orchestrator.list_agents()}

@@ -7,7 +7,7 @@ from cli.commands import analyze, auto, changelog, commit, agent, hook, index, p
 try:
     _pkg_version = version("inyeon")
 except PackageNotFoundError:
-    _pkg_version = "3.0.0"
+    _pkg_version = "3.5.0"
 
 
 app = typer.Typer(
@@ -68,6 +68,37 @@ def health(
 
     except APIError as e:
         console.print(f"[red]✗ Backend:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@app.command("providers")
+def list_providers(
+    api_url: str = typer.Option(
+        None,
+        "--api",
+        help="Backend API URL",
+        envvar="INYEON_API_URL",
+    ),
+):
+    """List available LLM providers on the backend."""
+    from rich.console import Console
+    from cli.api_client import APIClient, APIError
+
+    console = Console()
+
+    try:
+        client = APIClient(base_url=api_url)
+        result = client.list_providers()
+
+        default = result.get("default", "unknown")
+        console.print(f"[bold]Default provider:[/bold] {default}\n")
+        console.print("[bold]Available providers:[/bold]")
+        for p in result.get("available", []):
+            marker = "[green]●[/green]" if p["name"] == default else "[dim]○[/dim]"
+            console.print(f"  {marker} {p['name']} ({p['model']})")
+
+    except APIError as e:
+        console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
 
 

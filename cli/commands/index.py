@@ -111,6 +111,9 @@ def index(
     api_url: str = typer.Option(
         None, "--api", help="Backend API URL", envvar="INYEON_API_URL"
     ),
+    provider: str = typer.Option(
+        None, "--provider", "-p", help="LLM provider (openai, gemini, ollama)"
+    ),
 ):
     """Index current repository for RAG-enhanced commits."""
     if not is_git_repo():
@@ -118,7 +121,7 @@ def index(
         raise typer.Exit(1)
 
     repo_id = get_repo_id()
-    client = APIClient(base_url=api_url)
+    client = APIClient(base_url=api_url, provider=provider)
 
     if stats_only:
         try:

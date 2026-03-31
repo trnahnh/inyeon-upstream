@@ -55,6 +55,7 @@ def pr(
     branch: str = typer.Option(None, "--branch", "-b", help="Base branch to compare against"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output raw JSON"),
     api_url: str = typer.Option(None, "--api", envvar="INYEON_API_URL"),
+    provider: str = typer.Option(None, "--provider", "-p", help="LLM provider (openai, gemini, ollama)"),
 ):
     """Generate a pull request description from branch changes."""
     if not is_git_repo():
@@ -75,7 +76,7 @@ def pr(
         console.print(f"[yellow]No changes between {current} and {base_branch}[/yellow]")
         raise typer.Exit(0)
 
-    client = APIClient(base_url=api_url)
+    client = APIClient(base_url=api_url, provider=provider)
 
     with console.status("[bold blue]Generating PR description..."):
         try:

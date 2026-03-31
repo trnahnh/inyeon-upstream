@@ -93,6 +93,12 @@ def analyze(
         help="Backend API URL (overrides config)",
         envvar="INYEON_API_URL",
     ),
+    provider: str = typer.Option(
+        None,
+        "--provider",
+        "-p",
+        help="LLM provider (openai, gemini, ollama)",
+    ),
 ):
     """
     Analyze a git diff and explain the changes.
@@ -126,7 +132,7 @@ def analyze(
 
     # Call backend
     console.print("[dim]Analyzing diff...[/dim]", end="\r")
-    client = APIClient(base_url=api_url)
+    client = APIClient(base_url=api_url, provider=provider)
 
     try:
         result = client.analyze(diff_content, context)

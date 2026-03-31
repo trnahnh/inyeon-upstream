@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import ValidationError
 
-from backend.core.dependencies import get_llm_provider
+from backend.core.dependencies import get_llm_from_request
 from backend.models.schemas import AnalyzeRequest, AnalyzeResponse
 from backend.prompts.analyze_prompt import build_analyze_prompt
 from backend.services.llm import LLMProvider, LLMError
@@ -18,7 +18,7 @@ router = APIRouter()
 )
 async def analyze_diff(
     request: AnalyzeRequest,
-    llm: LLMProvider = Depends(get_llm_provider),
+    llm: LLMProvider = Depends(get_llm_from_request),
 ) -> AnalyzeResponse:
     """
     Analyze a git diff and return:

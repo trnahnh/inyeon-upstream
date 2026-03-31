@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from backend.agents.conflict_agent import ConflictAgent
 from backend.services.llm import LLMProvider
-from backend.core.dependencies import get_llm_provider
+from backend.core.dependencies import get_llm_from_request
 
 
 router = APIRouter(tags=["agent"])
@@ -32,7 +32,7 @@ class ConflictResponse(BaseModel):
 @router.post("/agent/resolve", response_model=ConflictResponse)
 async def resolve_conflicts(
     request: ConflictRequest,
-    llm: LLMProvider = Depends(get_llm_provider),
+    llm: LLMProvider = Depends(get_llm_from_request),
 ):
     try:
         agent = ConflictAgent(llm=llm, retriever=None)

@@ -51,6 +51,12 @@ def agent(
         help="Backend API URL",
         envvar="INYEON_API_URL",
     ),
+    provider: str = typer.Option(
+        None,
+        "--provider",
+        "-p",
+        help="LLM provider (openai, gemini, ollama)",
+    ),
 ):
     """
     Run the agentic git workflow.
@@ -82,7 +88,7 @@ def agent(
         console.print("[red]Error:[/red] Specify --staged or --all")
         raise typer.Exit(1)
 
-    client = APIClient(base_url=api_url)
+    client = APIClient(base_url=api_url, provider=provider)
 
     try:
         with console.status("[bold blue]Agent analyzing changes..."):

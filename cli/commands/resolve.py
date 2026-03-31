@@ -35,6 +35,7 @@ def resolve(
     all_conflicts: bool = typer.Option(False, "--all", "-a", help="Resolve all conflicts"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output raw JSON"),
     api_url: str = typer.Option(None, "--api", envvar="INYEON_API_URL"),
+    provider: str = typer.Option(None, "--provider", "-p", help="LLM provider (openai, gemini, ollama)"),
 ):
     """Resolve merge conflicts using AI analysis."""
     if not is_git_repo():
@@ -62,7 +63,7 @@ def resolve(
             "theirs": get_theirs_version(path),
         })
 
-    client = APIClient(base_url=api_url)
+    client = APIClient(base_url=api_url, provider=provider)
 
     with console.status("[bold blue]Resolving conflicts..."):
         try:

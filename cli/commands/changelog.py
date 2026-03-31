@@ -26,6 +26,7 @@ def changelog(
     output: str = typer.Option(None, "--output", "-o", help="Write to file"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output raw JSON"),
     api_url: str = typer.Option(None, "--api", envvar="INYEON_API_URL"),
+    provider: str = typer.Option(None, "--provider", "-p", help="LLM provider (openai, gemini, ollama)"),
 ):
     """Generate a changelog from commit history."""
     if not is_git_repo():
@@ -52,7 +53,7 @@ def changelog(
         console.print(f"[yellow]No commits found for {ref_label}[/yellow]")
         raise typer.Exit(0)
 
-    client = APIClient(base_url=api_url)
+    client = APIClient(base_url=api_url, provider=provider)
 
     with console.status("[bold blue]Generating changelog..."):
         try:
