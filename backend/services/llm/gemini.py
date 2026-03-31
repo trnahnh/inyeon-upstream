@@ -17,8 +17,10 @@ class GeminiError(LLMError):
 
 
 def _is_rate_limit_error(exc: Exception) -> bool:
-    msg = str(exc)
-    return "429" in msg or "RESOURCE_EXHAUSTED" in msg
+    code = getattr(exc, "code", None) or getattr(exc, "status_code", None)
+    if code in (429, 8):  # HTTP 429 or gRPC RESOURCE_EXHAUSTED
+        return True
+    return "RESOURCE_EXHAUSTED" in str(exc)
 
 
 def _extract_retry_delay(exc: Exception) -> float:
@@ -36,7 +38,10 @@ class GeminiProvider(LLMProvider):
     ):
         self.model_name = model
         self.timeout = timeout
-        self.client = genai.Client(api_key=api_key)
+        self.client = genai.Client(
+            api_key=api_key,
+            http_options={"timeout": timeout * 1000},
+        )
 
     async def generate(
         self,

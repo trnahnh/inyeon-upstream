@@ -59,10 +59,15 @@ def get_cached(prompt: str) -> dict[str, Any] | None:
 
 
 def set_cached(prompt: str, response: dict[str, Any]) -> None:
+    now = time.time()
+    # Evict expired entries first
+    expired = [k for k, (ts, _) in _cache.items() if now - ts > _CACHE_TTL_SECONDS]
+    for k in expired:
+        del _cache[k]
     if len(_cache) >= _CACHE_MAX_SIZE:
         oldest_key = min(_cache, key=lambda k: _cache[k][0])
         del _cache[oldest_key]
-    _cache[_cache_key(prompt)] = (time.time(), response)
+    _cache[_cache_key(prompt)] = (now, response)
 
 
 def clear_cache() -> None:
