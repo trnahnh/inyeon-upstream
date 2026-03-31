@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from backend.agents.changelog_agent import ChangelogAgent
-from backend.services.llm import LLMProvider
+from backend.core.logging import logger
+from backend.services.llm import LLMProvider, LLMError
 from backend.core.dependencies import get_llm_from_request
 
 
@@ -12,7 +13,7 @@ router = APIRouter(tags=["agent"])
 
 
 class ChangelogRequest(BaseModel):
-    commits: list[dict[str, str]] = Field(..., min_length=1)
+    commits: list[dict[str, str]] = Field(..., min_length=1, max_length=500)
     from_ref: str = Field(default="")
     to_ref: str = Field(default="HEAD")
     repo_path: str = Field(default=".")
@@ -38,5 +39,8 @@ async def generate_changelog(
             repo_path=request.repo_path,
         )
         return ChangelogResponse(**result)
+    except LLMError:
+        raise HTTPException(status_code=503, detail="LLM service unavailable")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("changelog agent failed: %s", e)
+        raise HTTPException(status_code=500, detail="Internal server error")

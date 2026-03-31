@@ -4,7 +4,8 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 
 from backend.agents import CommitAgent, ReviewAgent, AgentOrchestrator
-from backend.services.llm import LLMProvider
+from backend.core.logging import logger
+from backend.services.llm import LLMProvider, LLMError
 from backend.core.dependencies import get_llm_from_request
 
 
@@ -48,8 +49,11 @@ async def run_commit_agent(
             reasoning=result["reasoning"] if request.verbose else [],
             analysis=result.get("analysis", {}) if request.verbose else {},
         )
+    except LLMError as e:
+        raise HTTPException(status_code=503, detail="LLM service unavailable")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("commit agent failed: %s", e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/review", response_model=ReviewResponse)
@@ -65,8 +69,11 @@ async def run_review_agent(
             review=result.get("review", {}),
             reasoning=result["reasoning"] if request.verbose else [],
         )
+    except LLMError as e:
+        raise HTTPException(status_code=503, detail="LLM service unavailable")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("review agent failed: %s", e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/orchestrate")
@@ -82,8 +89,11 @@ async def orchestrate(
             repo_path=request.repo_path,
         )
         return result
+    except LLMError as e:
+        raise HTTPException(status_code=503, detail="LLM service unavailable")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("orchestrator failed: %s", e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/list")

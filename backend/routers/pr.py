@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from backend.agents.pr_agent import PRAgent
-from backend.services.llm import LLMProvider
+from backend.core.logging import logger
+from backend.services.llm import LLMProvider, LLMError
 from backend.core.dependencies import get_llm_from_request
 
 
@@ -13,7 +14,7 @@ router = APIRouter(tags=["agent"])
 
 class PRRequest(BaseModel):
     diff: str = Field(..., min_length=1)
-    commits: list[dict[str, str]] = Field(default_factory=list)
+    commits: list[dict[str, str]] = Field(default_factory=list, max_length=500)
     branch_name: str = Field(default="")
     base_branch: str = Field(default="main")
     repo_path: str = Field(default=".")
@@ -40,5 +41,8 @@ async def generate_pr(
             repo_path=request.repo_path,
         )
         return PRResponse(**result)
+    except LLMError:
+        raise HTTPException(status_code=503, detail="LLM service unavailable")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("PR agent failed: %s", e)
+        raise HTTPException(status_code=500, detail="Internal server error")

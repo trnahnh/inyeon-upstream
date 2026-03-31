@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from backend.agents.conflict_agent import ConflictAgent
-from backend.services.llm import LLMProvider
+from backend.core.logging import logger
+from backend.services.llm import LLMProvider, LLMError
 from backend.core.dependencies import get_llm_from_request
 
 
@@ -19,7 +20,7 @@ class ConflictFile(BaseModel):
 
 
 class ConflictRequest(BaseModel):
-    conflicts: list[ConflictFile] = Field(..., min_length=1)
+    conflicts: list[ConflictFile] = Field(..., min_length=1, max_length=50)
     repo_path: str = Field(default=".")
 
 
@@ -39,5 +40,8 @@ async def resolve_conflicts(
         conflicts = [c.model_dump() for c in request.conflicts]
         result = await agent.run(conflicts=conflicts, repo_path=request.repo_path)
         return ConflictResponse(**result)
+    except LLMError:
+        raise HTTPException(status_code=503, detail="LLM service unavailable")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("conflict agent failed: %s", e)
+        raise HTTPException(status_code=500, detail="Internal server error")

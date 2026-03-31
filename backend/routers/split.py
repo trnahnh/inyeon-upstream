@@ -3,7 +3,8 @@ from pydantic import BaseModel, Field
 from typing import Literal
 
 from backend.agents.split_agent import SplitAgent
-from backend.services.llm import LLMProvider
+from backend.core.logging import logger
+from backend.services.llm import LLMProvider, LLMError
 from backend.core.dependencies import get_llm_from_request
 
 
@@ -53,5 +54,8 @@ async def split_diff(
             reasoning=result["reasoning"],
             error=result.get("error"),
         )
+    except LLMError:
+        raise HTTPException(status_code=503, detail="LLM service unavailable")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("split agent failed: %s", e)
+        raise HTTPException(status_code=500, detail="Internal server error")
