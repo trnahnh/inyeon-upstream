@@ -11,11 +11,15 @@ RUN pip install --no-cache-dir .
 
 FROM python:3.12-slim AS runtime
 
+RUN useradd --create-home appuser
+
 WORKDIR /app
 
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 COPY --from=builder /app .
+
+USER appuser
 
 ENV PORT=8000
 
