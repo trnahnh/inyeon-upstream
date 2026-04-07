@@ -34,6 +34,7 @@ app = FastAPI(
     version=settings.api_version,
     description="Agentic AI Git Assistant",
     lifespan=lifespan,
+    redirect_slashes=False,
 )
 
 origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]

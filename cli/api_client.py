@@ -30,7 +30,7 @@ class APIClient:
             headers["X-LLM-Provider"] = self._provider
 
         try:
-            with httpx.Client(timeout=self.timeout) as client:
+            with httpx.Client(timeout=self.timeout, follow_redirects=True) as client:
                 response = client.request(method, url, headers=headers, **kwargs)
                 response.raise_for_status()
                 return response.json()
