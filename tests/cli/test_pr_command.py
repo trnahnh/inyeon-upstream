@@ -45,7 +45,7 @@ class TestPRCommand:
     def test_pr_not_git_repo(self, mock_is_git, runner):
         mock_is_git.return_value = False
 
-        result = runner.invoke(app, ["pr"])
+        result = runner.invoke(app, ["pr", "--no-stream"])
 
         assert result.exit_code == 1
         assert "Not a git repository" in result.stdout
@@ -58,7 +58,7 @@ class TestPRCommand:
         mock_diff.return_value = ""
         mock_branch.return_value = "feature/test"
 
-        result = runner.invoke(app, ["pr"])
+        result = runner.invoke(app, ["pr", "--no-stream"])
 
         assert result.exit_code == 0
         assert "No changes" in result.stdout
@@ -81,7 +81,7 @@ class TestPRCommand:
         mock_client.generate_pr.return_value = mock_api_response
         mock_client_class.return_value = mock_client
 
-        result = runner.invoke(app, ["pr"])
+        result = runner.invoke(app, ["pr", "--no-stream"])
 
         assert result.exit_code == 0
         assert "PR Title" in result.stdout
@@ -105,7 +105,7 @@ class TestPRCommand:
         mock_client.generate_pr.return_value = mock_api_response
         mock_client_class.return_value = mock_client
 
-        result = runner.invoke(app, ["pr", "--staged"])
+        result = runner.invoke(app, ["pr", "--staged", "--no-stream"])
 
         assert result.exit_code == 0
         mock_diff.assert_called_once()
@@ -128,7 +128,7 @@ class TestPRCommand:
         mock_client.generate_pr.return_value = mock_api_response
         mock_client_class.return_value = mock_client
 
-        result = runner.invoke(app, ["pr", "--branch", "develop"])
+        result = runner.invoke(app, ["pr", "--branch", "develop", "--no-stream"])
 
         assert result.exit_code == 0
         mock_diff.assert_called_once_with("develop")
@@ -178,7 +178,7 @@ class TestPRCommand:
         mock_client.generate_pr.side_effect = APIError("Connection failed")
         mock_client_class.return_value = mock_client
 
-        result = runner.invoke(app, ["pr"])
+        result = runner.invoke(app, ["pr", "--no-stream"])
 
         assert result.exit_code == 1
         assert "Error" in result.stdout
@@ -205,7 +205,7 @@ class TestPRCommand:
         }
         mock_client_class.return_value = mock_client
 
-        result = runner.invoke(app, ["pr"])
+        result = runner.invoke(app, ["pr", "--no-stream"])
 
         assert result.exit_code == 1
         assert "LLM generation failed" in result.stdout
@@ -228,7 +228,7 @@ class TestPRCommand:
         mock_client.generate_pr.return_value = mock_api_response
         mock_client_class.return_value = mock_client
 
-        result = runner.invoke(app, ["pr"])
+        result = runner.invoke(app, ["pr", "--no-stream"])
 
         assert result.exit_code == 0
         assert "Summary" in result.stdout

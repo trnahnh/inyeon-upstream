@@ -1,5 +1,6 @@
 import asyncio
 import json
+from collections.abc import AsyncIterator
 from typing import Any
 
 from openai import AsyncOpenAI, APIStatusError, APITimeoutError
@@ -76,6 +77,36 @@ class OpenAIProvider(LLMProvider):
                 raise OpenAIError(f"OpenAI request failed: {e}")
 
         raise OpenAIError(f"OpenAI request failed after {_MAX_RETRIES} retries: {last_exc}")
+
+    async def generate_stream(
+        self,
+        prompt: str,
+        json_mode: bool = False,
+        temperature: float = 0.3,
+    ) -> AsyncIterator[str]:
+        kwargs: dict[str, Any] = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature,
+            "stream": True,
+        }
+        if json_mode:
+            kwargs["response_format"] = {"type": "json_object"}
+
+        try:
+            stream = await self.client.chat.completions.create(**kwargs)
+            async for chunk in stream:
+                delta = chunk.choices[0].delta if chunk.choices else None
+                if delta and delta.content:
+                    yield delta.content
+        except APITimeoutError:
+            raise OpenAIError(f"Request timed out after {self.timeout}s")
+        except APIStatusError as e:
+            raise OpenAIError(f"OpenAI streaming failed: {e}")
+        except OpenAIError:
+            raise
+        except Exception as e:
+            raise OpenAIError(f"OpenAI streaming failed: {e}")
 
     async def generate_with_tools(
         self,

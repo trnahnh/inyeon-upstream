@@ -6,6 +6,7 @@ from rich.panel import Panel
 from rich.prompt import Confirm
 
 from cli.api_client import APIClient, APIError
+from cli.display import render_stream
 from cli.git_utils import (
     is_git_repo,
     get_staged_diff,
@@ -21,8 +22,6 @@ console = Console()
 
 
 def _display_commit(result: dict) -> None:
-    """Display generated commit message with rich formatting."""
-    # Commit type badge
     type_colors = {
         "feat": "green",
         "fix": "red",
@@ -43,7 +42,6 @@ def _display_commit(result: dict) -> None:
     console.print()
     console.print(Panel(result["message"], title=title, border_style=color))
 
-    # Show breaking change warning
     if result.get("breaking_change"):
         console.print(
             f"\n[bold red] BREAKING CHANGE:[/bold red] {result['breaking_change']}"
@@ -95,6 +93,17 @@ def commit(
         "-p",
         help="LLM provider (openai, gemini, ollama)",
     ),
+    local: bool = typer.Option(
+        False,
+        "--local",
+        "-L",
+        help="Run locally without backend server",
+    ),
+    stream: bool = typer.Option(
+        True,
+        "--stream/--no-stream",
+        help="Stream agent progress in real-time",
+    ),
     hook_mode: bool = typer.Option(
         False,
         "--hook-mode",
@@ -110,12 +119,10 @@ def commit(
         inyeon commit -s --issue "#123"
         inyeon commit -s --dry-run
     """
-    # Verify git repo
     if not is_git_repo():
         console.print("[red]Error:[/red] Not a git repository")
         raise typer.Exit(1)
 
-    # Get diff
     if staged:
         diff = get_staged_diff()
         if not diff.strip():
@@ -132,35 +139,60 @@ def commit(
         console.print("Usage: inyeon commit --staged")
         raise typer.Exit(1)
 
-    # Call backend
-    if not hook_mode:
-        console.print("[dim]Generating commit message...[/dim]", end="\r")
-    client = APIClient(base_url=api_url, provider=provider)
-
     try:
-        result = client.generate_commit(diff, issue)
+        if local:
+            import asyncio
+            from cli.engine import create_engine
+            from cli.display import render_local_stream
+
+            engine = create_engine(local=True, provider=provider)
+            if stream and not hook_mode:
+                result = render_local_stream(
+                    engine.generate_commit_stream(diff, issue_ref=issue), console
+                )
+                if result is None:
+                    raise typer.Exit(1)
+            else:
+                engine_result = asyncio.run(engine.generate_commit(diff, issue_ref=issue))
+                if engine_result.error:
+                    console.print(f"[red]Error:[/red] {engine_result.error}")
+                    raise typer.Exit(1)
+                result = engine_result.data
+        elif stream and not hook_mode:
+            client = APIClient(base_url=api_url, provider=provider)
+            events = client.generate_commit_stream(diff, issue_ref=issue)
+            result = render_stream(events, console)
+            if result is None:
+                raise typer.Exit(1)
+        else:
+            client = APIClient(base_url=api_url, provider=provider)
+            if not hook_mode:
+                console.print("[dim]Generating commit message...[/dim]", end="\r")
+            result = client.generate_commit(diff, issue)
+    except typer.Exit:
+        raise
     except APIError as e:
         if not hook_mode:
             console.print(f"[red]Error:[/red] {escape(str(e))}")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {escape(str(e))}")
         raise typer.Exit(1)
 
     if hook_mode:
         print(result.get("message", ""))
         raise typer.Exit(0)
 
-    # Output
     if json_output:
         console.print(json.dumps(result, indent=2))
         raise typer.Exit(0)
 
     _display_commit(result)
 
-    # Dry run stops here
     if dry_run:
         console.print("\n[dim]--dry-run: No commit created[/dim]")
         raise typer.Exit(0)
 
-    # Confirm and commit
     console.print()
     if not staged:
         console.print("[yellow]Warning:[/yellow] Using --all will commit all changes")

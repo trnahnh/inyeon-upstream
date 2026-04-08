@@ -1,7 +1,9 @@
+from collections.abc import AsyncIterator
 from typing import Any
 
 from langgraph.graph import StateGraph, END
 
+from backend.models.events import EventType, StreamEvent
 from .base import BaseAgent
 from .split_state import SplitAgentState
 from .split_nodes import (
@@ -62,13 +64,10 @@ class SplitAgent(BaseAgent):
 
         return graph.compile()
 
-    async def run(
-        self,
-        diff: str,
-        repo_path: str = ".",
-        strategy: str = "hybrid",
-    ) -> dict[str, Any]:
-        initial_state: SplitAgentState = {
+    def _initial_state(
+        self, diff: str, repo_path: str = ".", strategy: str = "hybrid"
+    ) -> SplitAgentState:
+        return {
             "diff": diff,
             "repo_path": repo_path,
             "strategy": strategy,
@@ -80,7 +79,15 @@ class SplitAgent(BaseAgent):
             "error": None,
         }
 
-        final_state = await self.graph.ainvoke(initial_state)
+    async def run(
+        self,
+        diff: str,
+        repo_path: str = ".",
+        strategy: str = "hybrid",
+    ) -> dict[str, Any]:
+        final_state = await self.graph.ainvoke(
+            self._initial_state(diff, repo_path, strategy)
+        )
 
         return {
             "splits": final_state.get("splits", []),
@@ -88,3 +95,49 @@ class SplitAgent(BaseAgent):
             "error": final_state.get("error"),
             "total_groups": len(final_state.get("splits", [])),
         }
+
+    async def run_stream(
+        self, diff: str, repo_path: str = ".", strategy: str = "hybrid", **kwargs
+    ) -> AsyncIterator[StreamEvent]:
+        yield StreamEvent(event=EventType.AGENT_START, agent=self.name)
+
+        final_state: dict = {}
+        prev_reasoning_len = 0
+
+        try:
+            async for state_update in self.graph.astream(
+                self._initial_state(diff, repo_path, strategy)
+            ):
+                for node_name, node_output in state_update.items():
+                    final_state.update(node_output)
+                    yield StreamEvent(
+                        event=EventType.NODE_COMPLETE,
+                        agent=self.name,
+                        node=node_name,
+                    )
+                    reasoning = final_state.get("reasoning", [])
+                    for step in reasoning[prev_reasoning_len:]:
+                        yield StreamEvent(
+                            event=EventType.REASONING,
+                            agent=self.name,
+                            data={"step": step},
+                        )
+                    prev_reasoning_len = len(reasoning)
+
+            splits = final_state.get("splits", [])
+            yield StreamEvent(
+                event=EventType.RESULT,
+                agent=self.name,
+                data={
+                    "splits": splits,
+                    "reasoning": final_state.get("reasoning", []),
+                    "error": final_state.get("error"),
+                    "total_groups": len(splits),
+                },
+            )
+        except Exception as e:
+            yield StreamEvent(
+                event=EventType.ERROR, agent=self.name, data={"error": str(e)}
+            )
+
+        yield StreamEvent(event=EventType.DONE, agent=self.name)

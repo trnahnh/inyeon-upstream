@@ -1,6 +1,7 @@
 import asyncio
 import json
 import re
+from collections.abc import AsyncIterator
 from typing import Any
 
 from google import genai
@@ -81,6 +82,32 @@ class GeminiProvider(LLMProvider):
                 raise GeminiError(f"Gemini request failed: {e}")
 
         raise GeminiError(f"Gemini request failed after {_MAX_RETRIES} retries: {last_exc}")
+
+    async def generate_stream(
+        self,
+        prompt: str,
+        json_mode: bool = False,
+        temperature: float = 0.3,
+    ) -> AsyncIterator[str]:
+        config = types.GenerateContentConfig(
+            temperature=temperature,
+            response_mime_type="application/json" if json_mode else "text/plain",
+        )
+
+        try:
+            async for chunk in await self.client.aio.models.generate_content_stream(
+                model=self.model_name,
+                contents=prompt,
+                config=config,
+            ):
+                if chunk.text:
+                    yield chunk.text
+        except GeminiError:
+            raise
+        except Exception as e:
+            if _is_rate_limit_error(e):
+                raise GeminiError(f"Rate limited during streaming: {e}")
+            raise GeminiError(f"Gemini streaming failed: {e}")
 
     async def generate_with_tools(
         self,

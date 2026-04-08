@@ -6,6 +6,7 @@ from rich.markup import escape
 from rich.panel import Panel
 
 from cli.api_client import APIClient, APIError
+from cli.display import render_stream
 from cli.git_utils import is_git_repo, get_staged_diff, get_all_diff
 
 
@@ -17,7 +18,6 @@ def _display_review(result: dict) -> None:
     """Display review with rich formatting."""
     review = result.get("review", {})
 
-    # Summary
     console.print()
     score = review.get("quality_score", "N/A")
     score_color = "green" if score >= 7 else "yellow" if score >= 5 else "red"
@@ -29,7 +29,6 @@ def _display_review(result: dict) -> None:
         )
     )
 
-    # Issues
     issues = review.get("issues", [])
     if issues:
         console.print("\n[bold red]Issues:[/bold red]")
@@ -44,14 +43,12 @@ def _display_review(result: dict) -> None:
             if issue.get("suggestion"):
                 console.print(f"    [dim]→ {issue['suggestion']}[/dim]")
 
-    # Positives
     positives = review.get("positives", [])
     if positives:
         console.print("\n[bold green]Positives:[/bold green]")
         for pos in positives:
             console.print(f"  [green]✓[/green] {pos}")
 
-    # Suggestions
     suggestions = review.get("suggestions", [])
     if suggestions:
         console.print("\n[bold blue]Suggestions:[/bold blue]")
@@ -73,6 +70,10 @@ def review(
     provider: str = typer.Option(
         None, "--provider", "-p", help="LLM provider (openai, gemini, ollama)"
     ),
+    local: bool = typer.Option(False, "--local", "-L", help="Run locally without backend server"),
+    stream: bool = typer.Option(
+        True, "--stream/--no-stream", help="Stream agent progress in real-time"
+    ),
 ):
     """Review code changes and get feedback."""
     if not is_git_repo():
@@ -93,12 +94,39 @@ def review(
         console.print("[red]Error:[/red] Specify --staged or --all")
         raise typer.Exit(1)
 
-    console.print("[dim]Reviewing code...[/dim]")
-    client = APIClient(base_url=api_url, provider=provider)
-
     try:
-        result = client.review(diff)
+        if local:
+            import asyncio
+            from cli.engine import create_engine
+            from cli.display import render_local_stream
+
+            engine = create_engine(local=True, provider=provider)
+            if stream and not json_output:
+                result = render_local_stream(engine.review_stream(diff), console)
+                if result is None:
+                    raise typer.Exit(1)
+            else:
+                engine_result = asyncio.run(engine.review(diff))
+                if engine_result.error:
+                    console.print(f"[red]Error:[/red] {engine_result.error}")
+                    raise typer.Exit(1)
+                result = engine_result.data
+        elif stream and not json_output:
+            client = APIClient(base_url=api_url, provider=provider)
+            events = client.review_stream(diff)
+            result = render_stream(events, console)
+            if result is None:
+                raise typer.Exit(1)
+        else:
+            client = APIClient(base_url=api_url, provider=provider)
+            console.print("[dim]Reviewing code...[/dim]")
+            result = client.review(diff)
+    except typer.Exit:
+        raise
     except APIError as e:
+        console.print(f"[red]Error:[/red] {escape(str(e))}")
+        raise typer.Exit(1)
+    except Exception as e:
         console.print(f"[red]Error:[/red] {escape(str(e))}")
         raise typer.Exit(1)
 

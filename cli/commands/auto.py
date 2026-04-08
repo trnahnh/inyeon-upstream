@@ -36,6 +36,8 @@ def auto(
     base_branch: str = typer.Option("main", "--branch", "-b", help="Base branch for PR"),
     api_url: str = typer.Option(None, "--api", envvar="INYEON_API_URL"),
     provider: str = typer.Option(None, "--provider", "-p", help="LLM provider (openai, gemini, ollama)"),
+    local: bool = typer.Option(False, "--local", "-L", help="Run locally without backend server"),
+    stream: bool = typer.Option(True, "--stream/--no-stream", help="Stream agent progress in real-time"),
 ):
     """Run the full workflow: split, commit, review, PR."""
     if not is_git_repo():
@@ -56,8 +58,16 @@ def auto(
 
     branch_name = get_current_branch()
     commits = get_branch_commits(base_branch)
-    client = APIClient(base_url=api_url, provider=provider)
-    pipeline = Pipeline(client)
+
+    if local:
+        from cli.engine import create_engine, SyncLocalBackend
+
+        engine = create_engine(local=True, provider=provider)
+        backend = SyncLocalBackend(engine)
+    else:
+        backend = APIClient(base_url=api_url, provider=provider)
+
+    pipeline = Pipeline(backend)
 
     with console.status("[bold blue]Running pipeline..."):
         result = pipeline.run(

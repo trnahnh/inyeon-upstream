@@ -142,7 +142,7 @@ class TestChangelogCommand:
         mock_client.generate_changelog.return_value = mock_api_response
         mock_client_class.return_value = mock_client
 
-        result = runner.invoke(app, ["changelog", "--from", "v2.0.0"])
+        result = runner.invoke(app, ["changelog", "--from", "v2.0.0", "--no-stream"])
 
         assert result.exit_code == 0
         assert "Changelog" in result.stdout
@@ -165,7 +165,7 @@ class TestChangelogCommand:
         mock_client.generate_changelog.side_effect = APIError("Connection failed")
         mock_client_class.return_value = mock_client
 
-        result = runner.invoke(app, ["changelog", "--from", "v2.0.0"])
+        result = runner.invoke(app, ["changelog", "--from", "v2.0.0", "--no-stream"])
 
         assert result.exit_code == 1
         assert "Error" in result.stdout
@@ -189,7 +189,7 @@ class TestChangelogCommand:
         }
         mock_client_class.return_value = mock_client
 
-        result = runner.invoke(app, ["changelog", "--from", "v2.0.0"])
+        result = runner.invoke(app, ["changelog", "--from", "v2.0.0", "--no-stream"])
 
         assert result.exit_code == 1
         assert "Generation failed" in result.stdout

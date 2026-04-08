@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 try:
     _pkg_version = version("inyeon")
 except PackageNotFoundError:
-    _pkg_version = "3.5.0"
+    _pkg_version = "4.0.0"
 
 
 class Settings(BaseSettings):

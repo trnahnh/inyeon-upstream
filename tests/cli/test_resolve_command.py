@@ -128,7 +128,7 @@ class TestResolveCommand:
         mock_client.resolve_conflicts.side_effect = APIError("Connection failed")
         mock_client_class.return_value = mock_client
 
-        result = runner.invoke(app, ["resolve", "--all"])
+        result = runner.invoke(app, ["resolve", "--all", "--no-stream"])
 
         assert result.exit_code == 1
         assert "Error" in result.stdout
@@ -157,7 +157,7 @@ class TestResolveCommand:
         }
         mock_client_class.return_value = mock_client
 
-        result = runner.invoke(app, ["resolve", "--all"])
+        result = runner.invoke(app, ["resolve", "--all", "--no-stream"])
 
         assert result.exit_code == 1
         assert "No conflict markers" in result.stdout

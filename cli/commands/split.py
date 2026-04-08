@@ -6,6 +6,7 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 
 from cli.api_client import APIClient, APIError
+from cli.display import render_stream
 from cli.git_utils import (
     is_git_repo,
     get_staged_diff,
@@ -39,6 +40,8 @@ def split(
     json_output: bool = typer.Option(False, "--json", "-j", help="Output raw JSON"),
     api_url: str = typer.Option(None, "--api", envvar="INYEON_API_URL"),
     provider: str = typer.Option(None, "--provider", "-P", help="LLM provider (openai, gemini, ollama)"),
+    local: bool = typer.Option(False, "--local", "-L", help="Run locally without backend server"),
+    stream: bool = typer.Option(True, "--stream/--no-stream", help="Stream agent progress in real-time"),
 ):
     if not is_git_repo():
         console.print("[red]Error:[/red] Not a git repository")
@@ -56,14 +59,43 @@ def split(
         console.print("[yellow]No changes to split[/yellow]")
         raise typer.Exit(0)
 
-    client = APIClient(base_url=api_url, provider=provider)
+    try:
+        if local:
+            import asyncio
+            from cli.engine import create_engine
+            from cli.display import render_local_stream
 
-    with console.status("[bold blue]Analyzing and splitting changes..."):
-        try:
-            result = client.split_diff(diff, strategy=strategy)
-        except APIError as e:
-            console.print(f"[red]Error:[/red] {escape(str(e))}")
-            raise typer.Exit(1)
+            engine = create_engine(local=True, provider=provider)
+            if stream and not json_output:
+                result = render_local_stream(
+                    engine.split_diff_stream(diff, strategy=strategy), console
+                )
+                if result is None:
+                    raise typer.Exit(1)
+            else:
+                engine_result = asyncio.run(engine.split_diff(diff, strategy=strategy))
+                if engine_result.error:
+                    console.print(f"[red]Error:[/red] {engine_result.error}")
+                    raise typer.Exit(1)
+                result = engine_result.data
+        elif stream and not json_output:
+            client = APIClient(base_url=api_url, provider=provider)
+            events = client.split_diff_stream(diff, strategy=strategy)
+            result = render_stream(events, console)
+            if result is None:
+                raise typer.Exit(1)
+        else:
+            client = APIClient(base_url=api_url, provider=provider)
+            with console.status("[bold blue]Analyzing and splitting changes..."):
+                result = client.split_diff(diff, strategy=strategy)
+    except typer.Exit:
+        raise
+    except APIError as e:
+        console.print(f"[red]Error:[/red] {escape(str(e))}")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {escape(str(e))}")
+        raise typer.Exit(1)
 
     if json_output:
         console.print(json.dumps(result, indent=2))

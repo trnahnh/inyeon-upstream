@@ -1,5 +1,6 @@
 import asyncio
 import json
+from collections.abc import AsyncIterator
 from typing import Any
 
 import httpx
@@ -72,6 +73,46 @@ class OllamaProvider(LLMProvider):
                 raise OllamaError(f"Ollama request failed: {e}")
 
         raise OllamaError(f"Ollama request failed after {_MAX_RETRIES} retries: {last_exc}")
+
+    async def generate_stream(
+        self,
+        prompt: str,
+        json_mode: bool = False,
+        temperature: float = 0.3,
+    ) -> AsyncIterator[str]:
+        payload = {
+            "model": self.model,
+            "prompt": prompt,
+            "stream": True,
+            "options": {
+                "temperature": temperature,
+            },
+        }
+        if json_mode:
+            payload["format"] = "json"
+
+        try:
+            async with self._client.stream(
+                "POST", "/api/generate", json=payload
+            ) as response:
+                response.raise_for_status()
+                async for line in response.aiter_lines():
+                    if not line:
+                        continue
+                    chunk = json.loads(line)
+                    token = chunk.get("response", "")
+                    if token:
+                        yield token
+                    if chunk.get("done", False):
+                        break
+        except httpx.TimeoutException:
+            raise OllamaError(f"Request timed out after {self.timeout}s")
+        except httpx.HTTPStatusError as e:
+            raise OllamaError(f"HTTP {e.response.status_code}: {e.response.text}")
+        except OllamaError:
+            raise
+        except Exception as e:
+            raise OllamaError(f"Ollama streaming failed: {e}")
 
     async def generate_with_tools(
         self,

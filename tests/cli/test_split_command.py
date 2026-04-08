@@ -86,7 +86,7 @@ class TestSplitCommand:
         mock_client.split_diff.return_value = mock_api_response
         mock_client_class.return_value = mock_client
 
-        result = runner.invoke(app, ["split", "--staged", "--preview"])
+        result = runner.invoke(app, ["split", "--staged", "--preview", "--no-stream"])
 
         assert result.exit_code == 0
         assert "Split Result" in result.stdout
@@ -124,7 +124,7 @@ class TestSplitCommand:
         mock_client.split_diff.return_value = mock_api_response
         mock_client_class.return_value = mock_client
 
-        result = runner.invoke(app, ["split", "--staged", "--preview"])
+        result = runner.invoke(app, ["split", "--staged", "--preview", "--no-stream"])
 
         assert "1 commit groups" in result.stdout or "Split Result" in result.stdout
         assert "main.py" in result.stdout
@@ -144,7 +144,7 @@ class TestSplitCommand:
         mock_client.split_diff.side_effect = APIError("Connection failed")
         mock_client_class.return_value = mock_client
 
-        result = runner.invoke(app, ["split", "--staged", "--preview"])
+        result = runner.invoke(app, ["split", "--staged", "--preview", "--no-stream"])
 
         assert result.exit_code == 1
         assert "Error" in result.stdout
@@ -167,7 +167,7 @@ class TestSplitCommand:
         }
         mock_client_class.return_value = mock_client
 
-        result = runner.invoke(app, ["split", "--staged", "--preview"])
+        result = runner.invoke(app, ["split", "--staged", "--preview", "--no-stream"])
 
         assert result.exit_code == 1
         assert "Clustering failed" in result.stdout
@@ -185,7 +185,7 @@ class TestSplitCommand:
         mock_client.split_diff.return_value = mock_api_response
         mock_client_class.return_value = mock_client
 
-        result = runner.invoke(app, ["split", "--all", "--preview"])
+        result = runner.invoke(app, ["split", "--all", "--preview", "--no-stream"])
 
         assert result.exit_code == 0
         mock_diff.assert_called_once()

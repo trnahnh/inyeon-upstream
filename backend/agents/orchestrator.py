@@ -1,5 +1,7 @@
+from collections.abc import AsyncIterator
 from typing import Any
 
+from backend.models.events import EventType, StreamEvent
 from backend.services.llm.base import LLMProvider
 from backend.rag import CodeRetriever
 
@@ -56,6 +58,38 @@ Respond with just the agent name."""
             return await self.agents[agent_name].run(diff=diff, repo_path=repo_path)
 
         return await self.agents["commit"].run(diff=diff, repo_path=repo_path)
+
+    async def route_stream(
+        self, task: str, diff: str, repo_path: str = "."
+    ) -> AsyncIterator[StreamEvent]:
+        task = task.lower()
+
+        if task in self.agents:
+            agent = self.agents[task]
+            async for event in agent.run_stream(diff=diff, repo_path=repo_path):
+                yield event
+            return
+
+        prompt = f"""Given this task, which agent should handle it?
+
+TASK: {task}
+
+Available agents:
+- changelog: Generate changelogs from commit history
+- commit: Generate commit messages from diffs
+- pr: Generate pull request descriptions
+- resolve: Resolve merge conflicts
+- review: Review code and provide feedback
+- split: Split large diffs into atomic commits
+
+Respond with just the agent name."""
+
+        response = await self.llm.generate(prompt, json_mode=False)
+        agent_name = response.get("text", "").strip().lower()
+
+        agent = self.agents.get(agent_name, self.agents["commit"])
+        async for event in agent.run_stream(diff=diff, repo_path=repo_path):
+            yield event
 
     def list_agents(self) -> list[dict[str, str]]:
         return [
