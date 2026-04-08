@@ -133,6 +133,27 @@ inyeon commit --staged              # Uses OpenAI
 inyeon commit --staged -p gemini    # Override to Gemini for this command
 ```
 
+### Streaming Output (v4.0.0)
+
+All commands stream real-time agent progress by default:
+
+```bash
+inyeon commit --staged                # Live progress: node completions, reasoning steps
+inyeon commit --staged --no-stream    # Classic mode: spinner until done
+```
+
+### Local / Offline Mode (v4.0.0)
+
+Run agents directly in the CLI process without a backend server:
+
+```bash
+inyeon commit --staged --local                    # Uses Ollama by default
+inyeon commit --staged --local --provider gemini  # Uses Gemini API (still "local" — no backend)
+inyeon auto --staged --local                      # Full pipeline in-process
+```
+
+Requires a running LLM provider (e.g., `ollama serve` for Ollama, or an API key for Gemini/OpenAI).
+
 ### Utilities
 
 ```bash
@@ -148,6 +169,8 @@ inyeon providers # List available LLM providers
 ## 🎯 Features
 
 - **Full Workflow Automation** - Split, commit, review, and generate PRs in one command
+- **Real-Time Streaming** - SSE-powered live progress for all agent operations
+- **Offline Mode** - Run agents locally without a backend server (`--local`)
 - **7 Specialized Agents** - Commit, review, split, PR, conflict resolution, changelog, orchestrator
 - **Cost Optimization** - Smart diff truncation, response caching, and short-circuit logic
 - **Atomic Commit Splitting** - 4 clustering strategies (directory, semantic, conventional, hybrid)
@@ -166,24 +189,28 @@ inyeon providers # List available LLM providers
 ┌─────────────────────────────────────────────────────┐
 │                     CLI (Typer)                     │
 │   commit  split  review  pr  resolve  changelog     │
-└─────────────────────┬───────────────────────────────┘
-                      │
-┌─────────────────────▼──────────────────────────────┐
-│                  FastAPI Backend                   │
+│              --stream (SSE)  --local                │
+└──────────┬──────────────────────────┬───────────────┘
+           │ HTTP (default)           │ --local
+           ▼                          ▼
+┌────────────────────┐  ┌──────────────────────────┐
+│   HttpEngine       │  │     LocalEngine          │
+│ (APIClient → SSE)  │  │  (in-process agents)     │
+└────────┬───────────┘  └──────────┬───────────────┘
+         │                         │
+         ▼                         ▼
+┌────────────────────────────────────────────────────┐
+│              LangGraph Agent Layer                 │
 │                                                    │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────┐  │
-│  │ CommitAgent  │  │  SplitAgent  │  │ PRAgent  │  │
-│  │ ReviewAgent  │  │  Changelog   │  │ Conflict │  │
-│  └──────┬───────┘  └──────┬───────┘  └────┬─────┘  │
-│         └─────────────────┼───────────────┘        │
-│                           │                        │
-│                           ▼                        │
-│  ┌─────────────────────────────────────────────┐   │
-│  │            LangGraph Workflows              │   │
-│  │         (StateGraph + Async Nodes)          │   │
-│  └──────────────────────┬──────────────────────┘   │
-│                         │                          │
-│                         ▼                          │
+│  CommitAgent  SplitAgent  PRAgent  ReviewAgent     │
+│  ConflictAgent  ChangelogAgent  Orchestrator       │
+│                                                    │
+│  run()  →  graph.ainvoke()  (blocking)             │
+│  run_stream()  →  graph.astream()  (SSE events)    │
+└──────────────────────┬─────────────────────────────┘
+                       │
+                       ▼
+┌────────────────────────────────────────────────────┐
 │  ┌──────────────┐  ┌─────────────────────────────┐ │
 │  │  LLM Factory │  │     Cost Optimization       │ │
 │  │OpenAI/Gemini/│  │  Truncation  Cache  Batch   │ │
@@ -193,7 +220,6 @@ inyeon providers # List available LLM providers
 │  ┌─────────────────────────────────────────────┐   │
 │  │   Clustering Engine   │   RAG (ChromaDB)    │   │
 │  └─────────────────────────────────────────────┘   │
-│                                                    │
 └────────────────────────────────────────────────────┘
 ```
 
@@ -229,6 +255,12 @@ inyeon providers # List available LLM providers
 | `POST /api/v1/agent/changelog` | Generate changelog |
 | `POST /api/v1/agent/orchestrate` | Auto-route to agent |
 | `GET /api/v1/agent/list` | List available agents |
+| `POST /api/v1/agent/stream/commit` | Stream commit agent (SSE) |
+| `POST /api/v1/agent/stream/review` | Stream review agent (SSE) |
+| `POST /api/v1/agent/stream/pr` | Stream PR agent (SSE) |
+| `POST /api/v1/agent/stream/split` | Stream split agent (SSE) |
+| `POST /api/v1/agent/stream/resolve` | Stream conflict agent (SSE) |
+| `POST /api/v1/agent/stream/changelog` | Stream changelog agent (SSE) |
 | `POST /api/v1/rag/index` | Index codebase |
 | `POST /api/v1/rag/search` | Semantic code search |
 | `POST /api/v1/rag/stats` | Index statistics |
