@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
+from typing import Any
 
-from cli.api_client import APIClient, APIError
+from cli.api_client import APIError
 
 
 @dataclass
@@ -15,7 +16,8 @@ class PipelineResult:
 
 
 class Pipeline:
-    def __init__(self, client: APIClient):
+    def __init__(self, client: Any):
+        """Accept any backend that has split_diff, generate_commit, review, generate_pr."""
         self.client = client
 
     def run(
