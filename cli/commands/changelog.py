@@ -6,6 +6,7 @@ from rich.markup import escape
 from rich.panel import Panel
 
 from cli.api_client import APIClient, APIError
+from cli.display import render_stream
 from cli.git_utils import (
     is_git_repo,
     get_commits_between,
@@ -27,6 +28,8 @@ def changelog(
     json_output: bool = typer.Option(False, "--json", "-j", help="Output raw JSON"),
     api_url: str = typer.Option(None, "--api", envvar="INYEON_API_URL"),
     provider: str = typer.Option(None, "--provider", "-p", help="LLM provider (openai, gemini, ollama)"),
+    local: bool = typer.Option(False, "--local", "-L", help="Run locally without backend server"),
+    stream: bool = typer.Option(True, "--stream/--no-stream", help="Stream agent progress in real-time"),
 ):
     """Generate a changelog from commit history."""
     if not is_git_repo():
@@ -53,18 +56,54 @@ def changelog(
         console.print(f"[yellow]No commits found for {ref_label}[/yellow]")
         raise typer.Exit(0)
 
-    client = APIClient(base_url=api_url, provider=provider)
+    try:
+        if local:
+            import asyncio
+            from cli.engine import create_engine
+            from cli.display import render_local_stream
 
-    with console.status("[bold blue]Generating changelog..."):
-        try:
-            result = client.generate_changelog(
-                commits=commits,
-                from_ref=from_ref or "",
-                to_ref=to_ref,
+            engine = create_engine(local=True, provider=provider)
+            if stream and not json_output:
+                result = render_local_stream(
+                    engine.generate_changelog_stream(
+                        commits=commits, from_ref=from_ref or "", to_ref=to_ref,
+                    ),
+                    console,
+                )
+                if result is None:
+                    raise typer.Exit(1)
+            else:
+                engine_result = asyncio.run(
+                    engine.generate_changelog(
+                        commits=commits, from_ref=from_ref or "", to_ref=to_ref,
+                    )
+                )
+                if engine_result.error:
+                    console.print(f"[red]Error:[/red] {engine_result.error}")
+                    raise typer.Exit(1)
+                result = engine_result.data
+        elif stream and not json_output:
+            client = APIClient(base_url=api_url, provider=provider)
+            events = client.generate_changelog_stream(
+                commits=commits, from_ref=from_ref or "", to_ref=to_ref,
             )
-        except APIError as e:
-            console.print(f"[red]Error:[/red] {escape(str(e))}")
-            raise typer.Exit(1)
+            result = render_stream(events, console)
+            if result is None:
+                raise typer.Exit(1)
+        else:
+            client = APIClient(base_url=api_url, provider=provider)
+            with console.status("[bold blue]Generating changelog..."):
+                result = client.generate_changelog(
+                    commits=commits, from_ref=from_ref or "", to_ref=to_ref,
+                )
+    except typer.Exit:
+        raise
+    except APIError as e:
+        console.print(f"[red]Error:[/red] {escape(str(e))}")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {escape(str(e))}")
+        raise typer.Exit(1)
 
     if result.get("error"):
         console.print(f"[red]Error:[/red] {escape(result['error'])}")

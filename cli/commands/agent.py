@@ -5,6 +5,7 @@ from rich.panel import Panel
 from rich.prompt import Confirm
 
 from cli.api_client import APIClient, APIError
+from cli.display import render_stream
 from cli.git_utils import (
     is_git_repo,
     get_staged_diff,
@@ -57,6 +58,17 @@ def agent(
         "-p",
         help="LLM provider (openai, gemini, ollama)",
     ),
+    local: bool = typer.Option(
+        False,
+        "--local",
+        "-L",
+        help="Run locally without backend server",
+    ),
+    stream: bool = typer.Option(
+        True,
+        "--stream/--no-stream",
+        help="Stream agent progress in real-time",
+    ),
 ):
     """
     Run the agentic git workflow.
@@ -88,16 +100,45 @@ def agent(
         console.print("[red]Error:[/red] Specify --staged or --all")
         raise typer.Exit(1)
 
-    client = APIClient(base_url=api_url, provider=provider)
-
     try:
-        with console.status("[bold blue]Agent analyzing changes..."):
-            result = client.run_agent(diff, verbose=verbose)
+        if local:
+            import asyncio
+            from cli.engine import create_engine
+            from cli.display import render_local_stream
+
+            engine = create_engine(local=True, provider=provider)
+            if stream:
+                result = render_local_stream(
+                    engine.generate_commit_stream(diff), console
+                )
+                if result is None:
+                    raise typer.Exit(1)
+            else:
+                engine_result = asyncio.run(engine.generate_commit(diff))
+                if engine_result.error:
+                    console.print(f"[red]Error:[/red] {engine_result.error}")
+                    raise typer.Exit(1)
+                result = engine_result.data
+        elif stream:
+            client = APIClient(base_url=api_url, provider=provider)
+            events = client.generate_commit_stream(diff)
+            result = render_stream(events, console)
+            if result is None:
+                raise typer.Exit(1)
+        else:
+            client = APIClient(base_url=api_url, provider=provider)
+            with console.status("[bold blue]Agent analyzing changes..."):
+                result = client.run_agent(diff, verbose=verbose)
+    except typer.Exit:
+        raise
     except APIError as e:
         console.print(f"[red]Error:[/red] {escape(str(e))}")
         raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {escape(str(e))}")
+        raise typer.Exit(1)
 
-    if verbose and result.get("reasoning"):
+    if not stream and verbose and result.get("reasoning"):
         console.print(
             Panel(
                 "\n".join(f"• {r}" for r in result["reasoning"]),
