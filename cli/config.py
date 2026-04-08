@@ -18,6 +18,15 @@ class Settings(BaseSettings):
 
     default_format: str = "rich"
 
+    ollama_url: str = "http://localhost:11434"
+    ollama_model: str = "qwen2.5-coder:7b"
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-2.5-flash"
+    openai_api_key: str | None = None
+    openai_model: str = "gpt-4.1-mini"
+    ollama_timeout: int = 120
+    max_diff_chars: int = 30000
+
 
 def get_config_file() -> Path | None:
     paths = [
