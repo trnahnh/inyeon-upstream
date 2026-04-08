@@ -7,7 +7,7 @@ from cli.commands import analyze, auto, changelog, commit, agent, hook, index, p
 try:
     _pkg_version = version("inyeon")
 except PackageNotFoundError:
-    _pkg_version = "3.5.0"
+    _pkg_version = "4.0.0"
 
 
 app = typer.Typer(
