@@ -11,7 +11,7 @@ from starlette.responses import JSONResponse
 from backend.core.config import settings
 from backend.core.dependencies import get_llm_provider
 from backend.core.logging import logger
-from backend.routers import analyze, changelog, commit, agent, conflict, pr, rag, split
+from backend.routers import analyze, changelog, commit, agent, conflict, pr, rag, split, streaming
 
 
 @asynccontextmanager
@@ -119,6 +119,7 @@ app.include_router(changelog.router, prefix="/api/v1")
 app.include_router(conflict.router, prefix="/api/v1")
 app.include_router(pr.router, prefix="/api/v1")
 app.include_router(split.router, prefix="/api/v1")
+app.include_router(streaming.router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["health"])
