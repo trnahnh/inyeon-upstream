@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, PlainTextResponse
 
 from backend.core.config import settings
 from backend.core.dependencies import get_llm_provider
@@ -49,7 +49,7 @@ app.add_middleware(
 
 
 class APIKeyMiddleware(BaseHTTPMiddleware):
-    OPEN_PATHS = {"/health", "/", "/docs", "/openapi.json", "/redoc"}
+    OPEN_PATHS = {"/health", "/", "/docs", "/openapi.json", "/redoc", "/robots.txt"}
 
     async def dispatch(self, request: Request, call_next):
         if not settings.api_key:
@@ -149,6 +149,11 @@ async def list_providers():
         "default": settings.llm_provider,
         "available": available,
     }
+
+
+@app.get("/robots.txt")
+async def robots():
+    return PlainTextResponse("User-agent: *\nDisallow: /")
 
 
 @app.get("/", tags=["root"])
